@@ -95,9 +95,10 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 - [x] Select Streamlit Community Cloud as the initial public host.
 - [ ] Confirm the deployed app can reach the selected AMD endpoint.
 - [ ] Configure deployment secrets outside the repository.
-- [ ] Publish the app and public GitHub repository.
+- [x] Publish the public GitHub repository: https://github.com/khalid-hussain-dev/amd-act-iii (initial project commit pushed to `main`).
+- [ ] Deploy the public app and record its URL.
 - [x] Add local run instructions, configuration guidance, CSV schema, detector rule, and limitations to the README.
-- [ ] Confirm no secrets or non-public factory data are included in published files.
+- [x] Keep the local `.env`, virtual environment, generated handoff/CSV outputs, and unrelated local files out of the initial repository commit.
 
 ## Phase 6 — Prepare submission and pitch
 
@@ -118,7 +119,7 @@ No additional local credentials or pre-build decisions are currently needed. The
 - Any approved cover or other visual assets after you finalize them. Codex will implement and integrate them.
 - Team workstream owners and an integration checkpoint, if PARALLAX wants the checklist to track named responsibilities.
 - Create the Streamlit Community Cloud app after the initial repository push, enter AMD values in its Secrets settings, and provide/record the public demo URL.
-- Create or select the public GitHub repository and review the publishable files before pushing.
-- Review the deployed build and finish the event submission materials.
+- Create the Streamlit Community Cloud app, enter AMD values in its Secrets settings, and provide/record the public demo URL.
+- Review any later repository additions and the deployed build, then finish the event submission materials.
 
 No additional palette decisions or UI mockups are needed. The user completed the listed local manual checks and focused AMD brief retest; results are in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md).

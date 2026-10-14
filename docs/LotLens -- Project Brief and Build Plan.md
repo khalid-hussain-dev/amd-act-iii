@@ -336,4 +336,4 @@ The user will use web ChatGPT to discuss and finalize the palette and visual ass
 
 ## Event reference
 
-See [AMD ACT III — Overview](../AMD%20ACT%20III%20--%20Overview.md) for the broader event requirements, tracks, judging criteria, and submission checklist. This brief is the working product plan for LotLens. Use [LotLens — Visual Identity & Color System](LotLens%20--%20Visual%20Identity%20%26%20Color%20System.md) as the authoritative product theme and verify live event details on the [AMD ACT III event page](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-iii) before submission.
+This brief is the working product plan for LotLens. Use [LotLens — Visual Identity & Color System](LotLens%20--%20Visual%20Identity%20%26%20Color%20System.md) as the authoritative product theme. For current event requirements, tracks, judging criteria, and submission details, consult the [AMD ACT III event page](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-iii) before submission.

@@ -67,4 +67,4 @@ Before choosing a provider, confirm that it:
 
 ## Deployment handoff
 
-The Streamlit Community Cloud account connection, deployment secrets, public URL, and publication remain team actions. This guide and the deployment configuration are preparation; they do not claim that LotLens has been deployed or that the hosted app can reach AMD from its network.
+The public repository's initial commit has been pushed. The Streamlit Community Cloud account connection, deployment secrets, public URL, and hosted review remain team actions. This guide and the deployment configuration are preparation; they do not claim that LotLens has been deployed or that the hosted app can reach AMD from its network.

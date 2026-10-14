@@ -62,7 +62,7 @@ Suggested order; adjust the final duration to the event form and team's recordin
 - **AMD:** The manual review record captures the endpoint-reported model and token usage. Add suitable presentation evidence that the successful call used the event-eligible AMD service; do not expose the API key.
 - **Behavior:** The user-reported local manual review recorded that the stable fixture did not alert and the seeded fixture met its onset/confirmation target. Repeat on the hosted build if its configuration differs.
 - **Grounding:** The user-reported MV-06 retest found source-linked checks and no unsupported sensor-range claim. Recheck if the model configuration or prompt changes.
-- **Demo access:** Add the public app URL and source repository URL only after they are available and reviewed.
+- **Demo access:** The public source repository is [khalid-hussain-dev/amd-act-iii](https://github.com/khalid-hussain-dev/amd-act-iii). Add the public app URL after deployment and hosted review.
 - **Visuals:** Add the approved cover and any presentation assets. Keep the plain-text `LotLens` placeholder until the finished logo is supplied.
 - **Event form:** Confirm the live submission deadline, title/description limits, required media, and available technology tags in the dashboard before submitting.
 
@@ -74,5 +74,6 @@ Suggested order; adjust the final duration to the event form and team's recordin
 - [x] Local AMD call completed and reviewed by the user; outcome and model attribution are recorded in the Manual Verification Guide.
 - [x] Local synthetic demo metrics manually recorded: stable scenario produced no alert; seeded drift onset was at 11:20 and confirmation at 11:40 (20-minute delay).
 - [ ] Final technology tags checked against the live dashboard.
-- [ ] Cover, video, slides, public repository, and public demo URL supplied.
+- [x] Public repository supplied: https://github.com/khalid-hussain-dev/amd-act-iii.
+- [ ] Cover, video, slides, and public demo URL supplied.
 - [ ] Current submission requirements and deadline confirmed; submission completed by the team.

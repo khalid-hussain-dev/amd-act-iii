@@ -73,5 +73,5 @@ The app raises a drift alert after three consecutive monitored readings exceed t
 - [Submission copy and pitch outline draft](docs/LotLens%20--%20Submission%20and%20Pitch%20Draft.md)
 - [Visual identity and color system](docs/LotLens%20--%20Visual%20Identity%20%26%20Color%20System.md)
 - [Logo identity and creative direction](docs/LotLens%20--%20Logo%20Identity%20%26%20Creative%20Direction.md)
-- [AMD ACT III event overview](AMD%20ACT%20III%20--%20Overview.md)
+- [AMD ACT III event page](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-iii)
 
