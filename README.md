@@ -51,10 +51,12 @@ Never commit `.env` or real credentials. The model receives calculated findings 
 Required columns:
 
 ```text
-timestamp,line_id,batch_id,shift,temperature_c,vibration_mm_s,pressure_bar,units_inspected,defect_count,operator_note
+timestamp,line_id,batch_id,shift,units_inspected,defect_count
 ```
 
-Timestamps must parse, numeric readings must be finite, `units_inspected` must be a positive whole-number count, and `defect_count` must be a whole number between zero and `units_inspected`. Each uploaded analysis must contain one `line_id` and at least 12 rows so the app can form a baseline and monitored period. Use synthetic or non-sensitive data in the hackathon demo.
+Optional context columns are `temperature_c` (°C), `vibration_mm_s` (mm/s), `pressure_bar` (bar), and `operator_note`. Omit them or leave them blank when unavailable; sensor fields are context only and do not drive the defect-rate alert. In the app, choose **Upload CSV** to download a blank template and see the field guide.
+
+Timestamps must parse, numeric values must be finite when provided, `units_inspected` must be a positive whole-number count, and `defect_count` must be a whole number between zero and `units_inspected`. Each uploaded analysis must contain one `line_id` and at least 12 rows so the app can form a baseline and monitored period. LotLens expects the column names and units above; different source names or units must be mapped or converted before upload. Use synthetic or non-sensitive data in the hackathon demo.
 
 ## Detection rule
 

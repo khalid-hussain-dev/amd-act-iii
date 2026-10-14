@@ -2,6 +2,8 @@
 
 This document describes the reproducible samples created by `lotlens/sample_data.py`. Every row is synthetic and intended only for the LotLens demo. The values are not factory measurements, operating limits, or validated process-control guidance.
 
+The built-in sample includes every column below. For uploaded production CSVs, the detector only requires `timestamp`, `line_id`, `batch_id`, `shift`, `units_inspected`, and `defect_count`; sensor and note columns are optional context. See the [real-data pilot guide](../docs/Real-Data%20Pilot%20and%20Verification%20Guide.md) for the upload schema.
+
 ## Dataset profile
 
 - **Rows:** 48 readings.

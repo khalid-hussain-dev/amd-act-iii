@@ -14,20 +14,25 @@ REQUIRED_COLUMNS = {
     "line_id",
     "batch_id",
     "shift",
-    "temperature_c",
-    "vibration_mm_s",
-    "pressure_bar",
     "units_inspected",
     "defect_count",
-    "operator_note",
 }
-NUMERIC_COLUMNS = (
+OPTIONAL_SIGNAL_COLUMNS = (
     "temperature_c",
     "vibration_mm_s",
     "pressure_bar",
+)
+CSV_TEMPLATE_COLUMNS = (
+    "timestamp",
+    "line_id",
+    "batch_id",
+    "shift",
     "units_inspected",
     "defect_count",
+    *OPTIONAL_SIGNAL_COLUMNS,
+    "operator_note",
 )
+REQUIRED_NUMERIC_COLUMNS = ("units_inspected", "defect_count")
 
 
 @dataclass(frozen=True)
@@ -62,7 +67,11 @@ class DetectionResult:
 
 
 def validate_dataframe(data: pd.DataFrame) -> ValidationResult:
-    """Normalize and validate the expected CSV shape."""
+    """Normalize and validate the expected CSV shape.
+
+    Inspection counts and production identifiers are required. Sensor context
+    and operator notes may be omitted; blank sensor cells are preserved as NaN.
+    """
     missing = sorted(REQUIRED_COLUMNS - set(data.columns))
     if missing:
         return ValidationResult(False, [f"Missing required columns: {', '.join(missing)}"])
@@ -73,13 +82,26 @@ def validate_dataframe(data: pd.DataFrame) -> ValidationResult:
     if bad_timestamps:
         return ValidationResult(False, [f"{bad_timestamps} row(s) have an invalid timestamp."])
 
-    for column in NUMERIC_COLUMNS:
+    for column in REQUIRED_NUMERIC_COLUMNS:
         clean[column] = pd.to_numeric(clean[column], errors="coerce")
         if clean[column].isna().any():
             return ValidationResult(False, [f"Column `{column}` contains a missing or non-numeric value."])
 
-    if not np.isfinite(clean[list(NUMERIC_COLUMNS)].to_numpy(dtype=float)).all():
+    if not np.isfinite(clean[list(REQUIRED_NUMERIC_COLUMNS)].to_numpy(dtype=float)).all():
         return ValidationResult(False, ["Numeric readings must be finite values; infinity is not a valid measurement."])
+
+    for column in OPTIONAL_SIGNAL_COLUMNS:
+        if column not in clean:
+            clean[column] = np.nan
+            continue
+        original = clean[column]
+        numeric = pd.to_numeric(original, errors="coerce")
+        has_text_value = original.notna() & original.astype(str).str.strip().ne("")
+        if (has_text_value & numeric.isna()).any():
+            return ValidationResult(False, [f"Column `{column}` contains a non-numeric value."])
+        if not np.isfinite(numeric.dropna().to_numpy(dtype=float)).all():
+            return ValidationResult(False, [f"Column `{column}` contains a non-finite value."])
+        clean[column] = numeric
 
     if len(clean) < 12:
         return ValidationResult(False, ["At least 12 timestamped readings are needed to compare a baseline and monitored period."])
@@ -105,6 +127,8 @@ def validate_dataframe(data: pd.DataFrame) -> ValidationResult:
     if clean["line_id"].nunique() != 1:
         return ValidationResult(False, ["This MVP analyzes one production line at a time. Filter the CSV to a single `line_id` before uploading."])
 
+    if "operator_note" not in clean:
+        clean["operator_note"] = ""
     clean["operator_note"] = clean["operator_note"].fillna("").astype(str)
     clean = clean.sort_values("timestamp").reset_index(drop=True)
     clean["defect_rate_pct"] = clean["defect_count"] / clean["units_inspected"] * 100
@@ -175,9 +199,9 @@ def detect_quality_drift(
             "defect_count": int(row["defect_count"]),
             "units_inspected": int(row["units_inspected"]),
             "defect_rate_pct": round(float(row["defect_rate_pct"]), 2),
-            "temperature_c": round(float(row["temperature_c"]), 2),
-            "vibration_mm_s": round(float(row["vibration_mm_s"]), 2),
-            "pressure_bar": round(float(row["pressure_bar"]), 2),
+            "temperature_c": None if pd.isna(row["temperature_c"]) else round(float(row["temperature_c"]), 2),
+            "vibration_mm_s": None if pd.isna(row["vibration_mm_s"]) else round(float(row["vibration_mm_s"]), 2),
+            "pressure_bar": None if pd.isna(row["pressure_bar"]) else round(float(row["pressure_bar"]), 2),
             "operator_note": str(row["operator_note"]),
         }
         for _, row in first_evidence.iterrows()

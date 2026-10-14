@@ -115,13 +115,13 @@ The Token Factory card displays `DeepSeek-V4-Flash`. AMD's current model referen
 
 ### Dataset shape
 
-The demo CSV should have enough information to connect a quality change to a batch. A small initial schema could be:
+The demo CSV should have enough information to calculate an inspection defect rate and connect a quality change to a batch. Current required columns are:
 
 ```text
-timestamp,line_id,batch_id,shift,temperature_c,vibration_mm_s,pressure_bar,units_inspected,defect_count,operator_note
+timestamp,line_id,batch_id,shift,units_inspected,defect_count
 ```
 
-Keep units, valid ranges, missing-value behavior, time zone, and the seeded drift interval documented. Mark all generated records clearly as **synthetic demo data**. Do not imply that generated records came from a real factory.
+Optional context columns are `temperature_c`, `vibration_mm_s`, `pressure_bar`, and `operator_note`. Sensor readings do not drive the defect-rate alert. Keep units, valid ranges, missing-value behavior, time zone, and the seeded drift interval documented. Mark all generated records clearly as **synthetic demo data**. Do not imply that generated records came from a real factory.
 
 ## UI: yes, it needs to be built
 

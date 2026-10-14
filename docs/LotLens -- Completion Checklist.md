@@ -6,11 +6,11 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 
 - `[x]` Implemented in the project files. This does not mean the behavior has been run or verified.
 - `[ ]` Not implemented yet, or awaiting an input or decision.
-- **Manual verification:** Results are recorded separately from implementation. The user completed the listed checks against the local build and reports that the deployed app worked as expected on 14 October 2026; Codex did not rerun either review. Repeat relevant checks after material changes.
+- **Manual verification:** Results are recorded separately from implementation. The user completed the listed checks against the local build and reports that the deployed app worked as expected on 14 October 2026. Codex ran focused CSV and app checks on 15 October 2026 after the upload-guidance changes; see the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). Repeat relevant checks after material changes.
 
 ## Track 1 engineering exit — Intelligent Industry
 
-**Status: Complete for the current MVP**, based on the implemented source and the user's recorded local/hosted manual reviews. No verification tests were run by Codex for this update.
+**Status: Complete for the current MVP**, based on the implemented source, the user's recorded local/hosted manual reviews, and Codex's focused upload-path checks on 15 October 2026.
 
 - The production-quality alert, synthetic stable/drift scenarios, evidence, procedure-grounded AMD brief, review UI, and handoff are implemented.
 - The public repository and deployed app are recorded as live; hosted success is user-reported.
@@ -32,7 +32,8 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 - [x] Generate a reproducible synthetic dataset with a stable interval and seeded drift.
 - [x] Provide separate reproducible seeded-drift and stable-process scenarios for alert and normal-state demonstrations.
 - [x] Add a data dictionary with units, synthetic ranges, and generation notes (`data/DATA_DICTIONARY.md`).
-- [x] Validate required columns, timestamps, numeric readings, missing values, and count ranges.
+- [x] Validate required inspection fields, timestamps, numeric readings, missing values, and count ranges; allow sensor context and notes to be omitted.
+- [x] Offer a downloadable CSV template and in-app explanation of required and optional columns.
 - [x] Restrict each analysis to one production line so unrelated lines are not mixed into one baseline.
 - [x] Reject non-finite measurements and fractional inspected/defect counts.
 - [x] Calculate defect rate from inspected and defective unit counts.

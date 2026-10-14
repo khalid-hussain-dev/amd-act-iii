@@ -1,11 +1,12 @@
 # Real-Data Pilot and Verification Guide
 
-This guide explains how a data owner and quality lead can prepare an approved, sanitized dataset and manually review LotLens's current CSV workflow. It is a procedure for the user to follow; it does not certify the detector for production control or replace the organization's data-protection review.
+This guide explains how a data owner and quality lead can prepare an approved, sanitized dataset and manually review LotLens's current CSV workflow. The upload screen also contains a blank CSV template and field guide. The document is a procedure for review; it does not certify the detector for production control or replace the organization's data-protection review.
 
-## Current verification status (14 October 2026)
+## Current verification status (15 October 2026)
 
-- **Synthetic workflow checks: passed.** The uploaded-reading validator and drift detector, stable/no-alert behavior, mapped and unmapped Commerce cases, malformed inventory handling, and Streamlit startup were checked locally against the built-in synthetic scenario and temporary synthetic CSV fixtures.
-- **Real-data pilot: not performed.** No approved or sanitized factory dataset was present in the repository or supplied for this review. Synthetic checks confirm the implemented calculation paths, but do not validate the alert rule against a real production process.
+- **Synthetic workflow checks: passed.** The uploaded-reading validator and drift detector, stable/no-alert behavior, mapped and unmapped Commerce cases, malformed inventory handling, Streamlit startup, CSV template, and sensor-free uploads were checked locally against synthetic scenarios and fixtures.
+- **`LINE-04_Production_Quality_Log.csv`:** Accepted by LotLens and produced a sustained-drift alert. It is byte-for-byte identical to `lotlens_synthetic_manufacturing_data.csv`, so it is the same synthetic dataset under a new name, not independent factory evidence.
+- **Real-data pilot: not performed.** No distinct approved factory dataset was available for this review. Synthetic checks confirm implemented calculation paths, but do not validate the alert rule against a real production process.
 - **Next concrete input for a real-data pilot:** an approved, sanitized production-readings CSV that follows the schema below. Matching inventory and open-orders CSVs are only needed if Commerce impact is also being reviewed.
 
 The exact local verification outcomes are recorded in the [manual verification guide](LotLens%20--%20Manual%20Verification%20Guide.md). No production or operational conclusion should be inferred from the synthetic checks.
@@ -33,11 +34,13 @@ For the first pilot, use a narrow, read-only export and keep an approved copy in
 
 ## Prepare the production-readings CSV
 
-The header must contain these columns:
+Required columns:
 
 ```text
-timestamp,line_id,batch_id,shift,temperature_c,vibration_mm_s,pressure_bar,units_inspected,defect_count,operator_note
+timestamp,line_id,batch_id,shift,units_inspected,defect_count
 ```
+
+Optional context columns are `temperature_c`, `vibration_mm_s`, `pressure_bar`, and `operator_note`. They may be omitted or blank. The sensors are displayed as descriptive context; the alert rule uses inspection counts. The in-app **Download CSV template** includes both required and optional column headers.
 
 | Column | Preparation guidance |
 | --- | --- |
@@ -45,14 +48,14 @@ timestamp,line_id,batch_id,shift,temperature_c,vibration_mm_s,pressure_bar,units
 | `line_id` | Include exactly one line per file. Split multi-line exports before upload. |
 | `batch_id` | Use the lot identifier associated with each reading. Keep the same pseudonymous ID in the inventory snapshot when assessing Commerce impact. |
 | `shift` | Use a non-empty shift label for every row. |
-| `temperature_c` | Numeric Celsius values. Convert from another unit before upload and record the conversion. |
-| `vibration_mm_s` | Numeric mm/s values. Convert from another unit before upload and record the conversion. |
-| `pressure_bar` | Numeric bar values. Convert from another unit before upload and record the conversion. |
+| `temperature_c` (optional) | Numeric Celsius values. Convert from another unit before upload and record the conversion. |
+| `vibration_mm_s` (optional) | Numeric mm/s values. Convert from another unit before upload and record the conversion. |
+| `pressure_bar` (optional) | Numeric bar values. Convert from another unit before upload and record the conversion. |
 | `units_inspected` | Positive whole-number count for each sample. |
 | `defect_count` | Whole-number count from zero through `units_inspected`. Ensure the organization's definition of a defect matches the export. |
-| `operator_note` | Optional text. Redact names, contact details, free-text customer data, and unapproved incident details. |
+| `operator_note` (optional) | Optional text. Redact names, contact details, free-text customer data, and unapproved incident details. |
 
-LotLens currently requires at least 12 valid rows, finite numeric values, non-empty line/batch/shift fields, and one `line_id`. Do not combine different units, definitions of defect, timezones, or sampling processes in one file.
+LotLens currently requires at least 12 valid rows, finite required numeric values, non-empty line/batch/shift fields, and one `line_id`. Supplied sensor values must be finite numbers, but sensor columns are optional. Do not combine different units, definitions of defect, timezones, or sampling processes in one file. Columns with different names or units must be mapped/converted before upload; the current MVP does not provide a source-column mapping wizard.
 
 ### Select a review window that fits the current detector
 

@@ -14,7 +14,7 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 from lotlens.amd_client import describe_inference_error, generate_investigation_brief, is_configured, missing_settings
 from lotlens.commerce import calculate_inventory_impact, sample_inventory, sample_orders, validate_commerce_inputs
-from lotlens.detector import DetectionResult, detect_quality_drift, validate_dataframe
+from lotlens.detector import CSV_TEMPLATE_COLUMNS, DetectionResult, detect_quality_drift, validate_dataframe
 from lotlens.evidence import build_retrieval_query, retrieve_procedures
 from lotlens.sample_data import build_sample_dataset
 
@@ -80,6 +80,22 @@ def _fmt_timestamp(value: str | None) -> str:
     return pd.Timestamp(value).strftime("%b %d · %H:%M")
 
 
+def _sensor_context_parts(row: dict) -> list[tuple[str, str]]:
+    """Format only sensor measurements that were actually supplied."""
+    fields = (
+        ("temperature_c", "Temperature", "°C", 1),
+        ("vibration_mm_s", "Vibration", "mm/s", 2),
+        ("pressure_bar", "Pressure", "bar", 2),
+    )
+    parts = []
+    for key, label, unit, precision in fields:
+        value = row.get(key)
+        if value is None or pd.isna(value):
+            continue
+        parts.append((label, f"{float(value):.{precision}f} {unit}"))
+    return parts
+
+
 def _build_chart(result: DetectionResult) -> go.Figure:
     data = result.chart_data
     fig = go.Figure()
@@ -126,7 +142,7 @@ def _build_chart(result: DetectionResult) -> go.Figure:
 
 def _build_sensor_chart(result: DetectionResult, column: str, label: str, units: str, color: str) -> go.Figure:
     data = result.chart_data
-    baseline = float(data.iloc[: result.baseline_points][column].mean())
+    baseline_values = data.iloc[: result.baseline_points][column].dropna()
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
@@ -139,15 +155,16 @@ def _build_sensor_chart(result: DetectionResult, column: str, label: str, units:
             hovertemplate=f"%{{x|%b %d, %H:%M}}<br>{label}: %{{y:.2f}} {units}<extra></extra>",
         )
     )
-    fig.add_hline(
-        y=baseline,
-        line_color="#B8CBA8",
-        line_dash="dot",
-        line_width=1.3,
-        annotation_text="Baseline mean",
-        annotation_position="bottom right",
-        annotation_font_color="#B8CBA8",
-    )
+    if not baseline_values.empty:
+        fig.add_hline(
+            y=float(baseline_values.mean()),
+            line_color="#B8CBA8",
+            line_dash="dot",
+            line_width=1.3,
+            annotation_text="Baseline mean",
+            annotation_position="bottom right",
+            annotation_font_color="#B8CBA8",
+        )
     if result.onset_time:
         fig.add_vline(x=pd.Timestamp(result.onset_time), line_color="#F0786B", line_dash="dot", line_width=1)
     fig.update_layout(
@@ -190,10 +207,13 @@ def _handoff_text(
     ]
     if result.evidence:
         for row in result.evidence:
+            sensor_context = ", ".join(f"{label}: {value}" for label, value in _sensor_context_parts(row))
+            if not sensor_context:
+                sensor_context = "No sensor context supplied"
             lines.append(
                 f"- {_fmt_timestamp(row['timestamp'])} | {row['batch_id']} | "
                 f"{row['defect_count']}/{row['units_inspected']} defects ({row['defect_rate_pct']:.2f}%) | "
-                f"{row['temperature_c']:.2f} C | {row['vibration_mm_s']:.2f} mm/s | {row['pressure_bar']:.2f} bar"
+                f"{sensor_context}"
             )
             if row.get("operator_note"):
                 lines.append(f"  Operator note: {row['operator_note']}")
@@ -258,6 +278,27 @@ with st.sidebar:
     if source_mode == "Upload CSV":
         uploaded_file = st.file_uploader("Upload production readings", type=["csv"])
         st.caption("CSV stays in this app session. Use synthetic or non-sensitive data only.")
+        st.download_button(
+            "Download CSV template",
+            data=pd.DataFrame(columns=CSV_TEMPLATE_COLUMNS).to_csv(index=False).encode("utf-8"),
+            file_name="lotlens-production-template.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        with st.expander("CSV format and field guide"):
+            st.markdown(
+                "**Required columns**: `timestamp`, `line_id`, `batch_id`, `shift`, `units_inspected`, `defect_count`. "
+                "Use one production line per file and at least 12 timestamped readings."
+            )
+            st.markdown(
+                "**Optional context**: `temperature_c` (°C), `vibration_mm_s` (mm/s), `pressure_bar` (bar), and `operator_note`. "
+                "Omit these columns or leave their cells blank when unavailable. Sensors are shown as context; defect counts drive the alert."
+            )
+            st.markdown(
+                "Use consistent timestamps/timezone and units. `units_inspected` must be a positive whole number; "
+                "`defect_count` must be a whole number from 0 through `units_inspected`. LotLens analyzes one line at a time."
+            )
+            st.caption("Columns not listed above are ignored. Different source column names or units must be mapped/converted before upload.")
         st.markdown('<div class="ll-kicker" style="margin-top:.8rem">Commerce context (optional)</div>', unsafe_allow_html=True)
         inventory_file = st.file_uploader("Upload inventory snapshot CSV", type=["csv"], key="inventory_snapshot")
         orders_file = st.file_uploader("Upload open-orders CSV", type=["csv"], key="open_orders")
@@ -446,14 +487,26 @@ with chart_col:
             "Vibration": ("vibration_mm_s", "Vibration", "mm/s", "#9DBDD9"),
             "Pressure": ("pressure_bar", "Pressure", "bar", "#D0B17A"),
         }
-        selected_signal = st.selectbox("Machine signal", list(signal_options), key="machine_signal")
-        column, label, units, color = signal_options[selected_signal]
-        st.plotly_chart(
-            _build_sensor_chart(detection, column, label, units, color),
-            use_container_width=True,
-            config={"displayModeBar": False},
-        )
-        st.caption("Signal context only. The alert rule uses inspection defect rate; this baseline mean is descriptive and is not an operating limit.")
+        available_signals = {
+            label: option
+            for label, option in signal_options.items()
+            if analysis_input[option[0]].notna().any()
+        }
+        if available_signals:
+            selected_signal = st.selectbox("Machine signal", list(available_signals), key="machine_signal")
+            column, label, units, color = available_signals[selected_signal]
+            st.plotly_chart(
+                _build_sensor_chart(detection, column, label, units, color),
+                use_container_width=True,
+                config={"displayModeBar": False},
+            )
+            baseline_has_signal = analysis_input.iloc[: detection.baseline_points][column].notna().any()
+            if baseline_has_signal:
+                st.caption("Signal context only. The alert rule uses inspection defect rate; this baseline mean is descriptive and is not an operating limit.")
+            else:
+                st.caption("No readings for this signal were supplied in the baseline interval; the alert rule uses inspection defect rate only.")
+        else:
+            st.info("No machine sensor readings were supplied. Quality analysis still uses inspection defect counts.")
     st.markdown('<div class="ll-footnote">The threshold is calculated as baseline mean + max(3 population standard deviations, 2 percentage points). An alert requires three consecutive readings above it.</div>', unsafe_allow_html=True)
 
 with brief_col:
@@ -647,12 +700,14 @@ with evidence_col:
     if detection.evidence:
         for row in detection.evidence:
             note = f" · Note: {row['operator_note']}" if row.get("operator_note") else ""
+            sensor_context = " · ".join(
+                f"{label} {value}" for label, value in _sensor_context_parts(row)
+            ) or "Sensor context unavailable"
             st.markdown(
                 '<div class="ll-evidence">'
                 f"<b>{html.escape(_fmt_timestamp(row['timestamp']))}</b> · {html.escape(row['batch_id'])}<br>"
                 f"Defects: {row['defect_count']} / {row['units_inspected']} ({row['defect_rate_pct']:.2f}%) · "
-                f"Temp {row['temperature_c']:.1f} °C · Vibration {row['vibration_mm_s']:.2f} mm/s · "
-                f"Pressure {row['pressure_bar']:.2f} bar{html.escape(note)}"
+                f"{html.escape(sensor_context)}{html.escape(note)}"
                 "</div><div style='height:.45rem'></div>",
                 unsafe_allow_html=True,
             )

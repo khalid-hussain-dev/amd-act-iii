@@ -129,7 +129,7 @@ If the request fails, record the exact user-facing error text and mark this step
 
 Make each malformed file from a copy of the downloaded sample CSV; keep all files synthetic.
 
-1. **Missing field:** Remove the `operator_note` column and upload. Expected: a missing required column message; no quality finding.
+1. **Missing field:** Remove the required `shift` column and upload. Expected: a missing required column message; no quality finding. (Earlier manual runs tested `operator_note` as required; it is now optional.)
 2. **Too few readings:** Keep only 11 data rows and upload. Expected: an insufficient-evidence message explaining that at least 12 readings are needed.
 3. **Multiple production lines:** Change `line_id` on one data row so the file has two line IDs. Expected: a message that this MVP analyzes one production line at a time.
 4. **Malformed or incomplete CSV (optional):** Upload a plain-text file saved with a `.csv` extension. Expected: either a parsing/input-format error or a missing-required-columns message, never a production alert.
@@ -137,7 +137,7 @@ Make each malformed file from a copy of the downloaded sample CSV; keep all file
 After each case, return to **Sample scenario** and confirm the valid built-in flow is still usable.
 
 **Result:** Pass  
-**Notes by case (1–4):** All ran as expected. Case 1 reported missing `operator_note`; case 2 reported insufficient evidence (at least 12 readings); case 3 reported the one-line restriction; case 4 reported missing required columns, which is an acceptable input-validation response.
+**Notes by case (1–4) at the time of the original review:** All ran as expected. Case 1 reported missing `operator_note` under the older schema; case 2 reported insufficient evidence (at least 12 readings); case 3 reported the one-line restriction; case 4 reported missing required columns, which is an acceptable input-validation response. The current build makes notes optional; the required-field case now uses `shift`.
 
 ### MV-09 — Analysis changes when the selected dataset changes
 
@@ -223,3 +223,13 @@ Include the exact visible error text or a brief description for failures. Do not
 - The brief stated the cause was unresolved, no sensor readings or maintenance records were included in the alert, and the excerpts supplied no numeric limits for threshold assessment. It left decisions to human review.
 
 The user reported that the deployed project worked as expected. No hosted failure or follow-up issue was reported. Repeat the relevant checks after a material application, model, prompt, or deployment change.
+
+## 6. Upload template and optional sensor context
+
+**Review date:** 15 October 2026
+
+**Build/revision:** local working tree after `aeeb6bb`; upload-guidance changes were not yet committed during this check.
+
+**Result:** Pass — 18 focused checks passed. The new `LINE-04_Production_Quality_Log.csv` was accepted and analyzed as a synthetic Industry input. The upload screen rendered the CSV template download and field guide. A copy with all optional sensor and note columns removed also uploaded and analyzed successfully; the app explicitly showed that no machine sensor readings were supplied while retaining the defect-rate analysis. Partial/blank sensor context was accepted, while a non-numeric supplied sensor value was rejected as an input issue. Streamlit app startup, upload-mode rendering, and analysis completed without uncaught exceptions.
+
+**Interpretation limit:** `LINE-04_Production_Quality_Log.csv` is byte-for-byte identical to `lotlens_synthetic_manufacturing_data.csv`. These checks verify the uploader and analysis behavior with synthetic data, not performance on independent factory records.
