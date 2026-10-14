@@ -30,6 +30,8 @@ For a hosted deployment, configure the AMD endpoint, model name, and API key thr
 
 The selected hosting target is Streamlit Community Cloud. Its deployment uses the GitHub repository directly; add the AMD settings as Streamlit app secrets rather than uploading `.env`. See the Streamlit section in the deployment guide.
 
+**Live demo:** [lotlens.streamlit.app](https://lotlens.streamlit.app/). The user reports that the deployed project was manually reviewed and worked as expected; details are recorded in the [Manual Verification Guide](docs/LotLens%20--%20Manual%20Verification%20Guide.md).
+
 The app opens with a clearly labeled synthetic sample scenario. Choose either **Seeded drift** or **Stable process** to view both alert and no-alert cases, or select **Upload CSV** to use another dataset; the required schema is described below.
 
 The sample fields, units, generation pattern, and limits of interpretation are documented in [the synthetic data dictionary](data/DATA_DICTIONARY.md).
@@ -64,8 +66,15 @@ baseline mean + max(3 × baseline standard deviation, 2 percentage points)
 
 The app raises a drift alert after three consecutive monitored readings exceed that threshold. It records the first crossing as the onset and the third reading as the confirmation time. This is a transparent demo rule, not an industrially validated quality-control method.
 
+## Commerce inventory impact
+
+When drift is detected, the sample scenario maps the affected batch to a synthetic SKU, inventory snapshot, and open-orders snapshot. LotLens calculates affected units on hand or reserved, checks available stock in other lots, and shows whether that clean stock could cover affected reservations plus unallocated open orders. The recommendation is a human-review prompt; LotLens does not place a hold, change orders, or forecast sales.
+
+For uploaded production readings, upload both additional CSVs from the sidebar to see this view. Required columns and the disclosed allocation rule are in [the Commerce data dictionary](data/COMMERCE_DATA_DICTIONARY.md). All included Commerce values are synthetic. The mapped, unmapped, and invalid-snapshot Commerce cases have been manually reviewed locally.
+
 ## Project documentation
 
+- [Commerce data dictionary](data/COMMERCE_DATA_DICTIONARY.md)
 - [Project brief and phased build plan](docs/LotLens%20--%20Project%20Brief%20and%20Build%20Plan.md)
 - [Phase completion checklist and required user inputs](docs/LotLens%20--%20Completion%20Checklist.md)
 - [Manual verification steps and results log](docs/LotLens%20--%20Manual%20Verification%20Guide.md)

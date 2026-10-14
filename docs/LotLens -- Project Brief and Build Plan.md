@@ -4,19 +4,22 @@
 
 **Team:** PARALLAX  
 **Primary track:** Intelligent Industry  
-**Optional secondary track:** Reinvent Commerce, only if the inventory-impact view is implemented and demonstrated  
-**One-line pitch:** LotLens spots when a production batch starts drifting out of specification, shows the evidence behind the alert, and gives quality staff a source-backed next-step brief.
+**Additional track implementation:** The Reinvent Commerce inventory-impact workflow is implemented and manually reviewed locally.
+**One-line pitch:** LotLens spots when a production batch starts drifting out of specification, shows the evidence behind the alert, gives quality staff a source-backed next-step brief, and maps an alerted lot to stock and open orders for a human-reviewed allocation decision.
 
-LotLens is one product and one submission. It may be entered in more than one challenge track if the same working product truly satisfies both briefs. The current plan is to build for Intelligent Industry first. A small inventory-impact feature could support Reinvent Commerce if the core industrial workflow is already complete.
+LotLens remains one product and one submission. Its core Intelligent Industry workflow is complete; an integrated inventory-impact workflow has been added to support Reinvent Commerce. Track 2 uses transparent stock and open-order rules, not an LLM-generated forecast or automated stock action.
 
 ### Current implementation status
 
-- **Product contract:** One Intelligent Industry MVP, one synthetic quality-drift scenario, a deterministic alert, an evidence brief, and human review.
+- **Product contract:** One product with an Intelligent Industry quality-drift workflow and an integrated Reinvent Commerce stock-impact workflow; both retain deterministic calculations and human-approved actions.
 - **Phase 1:** Initial data validation, two synthetic scenarios (stable and seeded drift), the single-line drift detector, and procedure retrieval are implemented. User-reported manual results confirmed no stable-scenario alert and a seeded alert at 11:20, confirmed at 11:40 on 14 October 2026.
 - **Phase 2:** The AMD Token Factory chat call, response validation, citation filtering, and UI fallback are implemented. The user configured the API key and completed a live brief call. The first response made an unsupported typical-range claim; after narrowing the request context and prompt, the user re-ran MV-06 successfully (892 tokens; endpoint-reported model `self-dploy/DeepSeek-V4-Flash`) with source-linked checks and no unsupported range claim.
 - **Phase 3:** The Streamlit prototype, Mineral Precision theme, explicit analysis action, scenario selector, CSV upload, evidence, handoff, and input states are implemented. The user reported that visual interactions and CSV cases ran as expected. The logo remains a plain-text placeholder.
 - **Manual review:** The user completed the listed local manual checks on 14 October 2026; outcomes are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). This is a user-reported review, not a Codex rerun.
-- **Next engineering gate:** Publish the public repository, deploy to the selected Streamlit Community Cloud host, review the hosted build, then complete the submission materials. Integrate approved visual assets when supplied.
+- **Deployment:** Public repository published and Streamlit Community Cloud demo live at https://lotlens.streamlit.app/. The user reports a successful hosted review, including an AMD-generated investigation brief; see the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md).
+- **Track 1 engineering:** Complete. The user-reported local and hosted manual reviews are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). Remaining Track 1 items are final-demo evidence, team assignment, and user-supplied visual assets; those are deferred with submission preparation.
+- **Track 2 implementation:** Inventory-to-SKU mapping, inventory/order CSV validation, unaffected-stock calculation, and a human-reviewed allocation recommendation are implemented and user-reviewed locally, including mapped, unmapped, and invalid-snapshot uploads.
+- **Next project gate:** Decide which demonstrated tracks to select in the submission, then finish the presentation materials and submit.
 
 ## Vision
 
@@ -47,6 +50,8 @@ LotLens makes a potential quality drift visible early and gives the team a trace
 5. An open model running through an AMD-backed endpoint turns the calculated evidence and retrieved excerpts into a concise investigation brief.
 6. The user sees the alert, trend chart, evidence, source excerpts, uncertainty, and suggested human checks in one interface.
 7. The user can copy or download the brief as a shift handoff. Nothing is automatically changed in a production system.
+8. The inventory view maps the alerted batch to a SKU, excludes that lot from clean stock, and compares affected reservations plus unallocated open orders with available unaffected stock.
+9. A quality or fulfillment lead reviews the suggested allocation or uncovered-unit gap. LotLens does not change inventory, place orders, or predict future demand.
 
 ### AI and deterministic responsibilities
 
@@ -75,7 +80,6 @@ The language model must not invent measurements, calculate the alert threshold, 
 
 ### Defer unless the MVP is complete
 
-- A second track's inventory action.
 - Multiple factory lines, user accounts, permissions, or persistent databases.
 - Live equipment connections, PLC controls, or automatic work-order dispatch.
 - Fine-tuning, model training, a multi-agent system, or a vector database.
@@ -233,7 +237,7 @@ Track implementation progress in [LotLens — Phase Completion Checklist](LotLen
 **Goal:** Make the submission communicate the working product clearly.
 
 1. Write the title, short description, and long description around the quality-drift user problem.
-2. Select Intelligent Industry. Select Reinvent Commerce only if the inventory feature is implemented and demonstrated.
+2. Intelligent Industry is the completed core. Reinvent Commerce is implemented as an inventory-impact extension and has passed local manual review. The event page allows selecting one or more tracks, so choose the tracks the submission demonstrates clearly.
 3. Add technology tags that match actual use, including the specific AMD technology used.
 4. Create a cover image using the visual brief below.
 5. Record a short product demo showing input → alert → evidence → AMD-backed explanation → human next step.
@@ -242,17 +246,18 @@ Track implementation progress in [LotLens — Phase Completion Checklist](LotLen
 
 **Done when:** The LabLabAI submission has all required fields, links, media, and track selections, and the video and app tell the same story.
 
-## Optional second-track gate: Reinvent Commerce
+## Reinvent Commerce implementation
 
-Do not start this until Phases 1–3 for the Industry workflow are stable.
+The Commerce extension is implemented after the Intelligent Industry workflow reached its manual-review gate. It supports an inventory or fulfillment lead who needs to understand which sellable lot is implicated by a quality alert and whether unaffected stock can cover current allocations.
 
-1. Add a small inventory table mapping affected batches to SKUs and on-hand quantities.
-2. Show which sellable stock may be affected by the alert.
-3. Use a simple, disclosed rule for a human-reviewed hold/replenishment recommendation; do not ask the language model to invent demand forecasts.
-4. Explain the merchant or fulfilment user and the commercial outcome the feature supports.
-5. Demonstrate that action end to end and select the second track only if it is a genuine product capability.
+- Map the alert's batch to one or more SKUs in an inventory snapshot.
+- Show on-hand units, reserved units, and available stock by lot.
+- Compare reservations from the affected lot plus unallocated open orders with available units in unaffected lots.
+- Recommend a human-reviewed hold and allocation; show any remaining unit gap.
+- Do not generate demand forecasts, claim financial savings, place replenishment orders, or alter the inventory system.
+- Use synthetic inventory and order snapshots for the built-in scenario. Uploaded production data requires both corresponding Commerce CSVs for an assessment.
 
-If this gate would delay or weaken the primary demo, omit the second track.
+The extension is implemented and manually reviewed locally. LabLabAI's event page allows selecting one or more tracks; make the final dashboard selection based on the capabilities the submission clearly demonstrates.
 
 ## Success measures for the demo
 
@@ -327,7 +332,7 @@ The user will use web ChatGPT to discuss and finalize the palette and visual ass
 
 ## Risks and decisions to verify
 
-- **AMD deployment access:** Local AMD inference has been manually reviewed. Confirm outbound access and configure the secret variables when the deployment host is selected.
+- **AMD deployment access:** Local and hosted AMD inference have been manually reviewed by the user; hosted review details are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). Recheck after material deployment or model-configuration changes.
 - **Deadline discrepancy:** The live schedule showed 18 October at 3:00 PM Pakistan time while the event header showed 8:00 PM PST. Use the earlier time as the internal deadline until the organizers clarify.
 - **Synthetic data:** Clearly label it and avoid real-world performance claims based only on generated data.
 - **Model reliability:** Keep calculated values deterministic, show source excerpts, and make uncertainty visible.

@@ -10,8 +10,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from dotenv import dotenv_values
+from streamlit.errors import StreamlitSecretNotFoundError
 
 from lotlens.amd_client import describe_inference_error, generate_investigation_brief, is_configured, missing_settings
+from lotlens.commerce import calculate_inventory_impact, sample_inventory, sample_orders, validate_commerce_inputs
 from lotlens.detector import DetectionResult, detect_quality_drift, validate_dataframe
 from lotlens.evidence import build_retrieval_query, retrieve_procedures
 from lotlens.sample_data import build_sample_dataset
@@ -29,13 +31,14 @@ def _load_runtime_env() -> None:
     """
     try:
         hosted_secrets = st.secrets
-    except FileNotFoundError:
-        hosted_secrets = {}
-
-    for name in ("AMD_CHAT_COMPLETIONS_URL", "AMD_MODEL_NAME", "AMD_API_KEY"):
-        value = hosted_secrets.get(name)
-        if value is not None and not os.environ.get(name, "").strip():
-            os.environ[name] = str(value)
+        for name in ("AMD_CHAT_COMPLETIONS_URL", "AMD_MODEL_NAME", "AMD_API_KEY"):
+            value = hosted_secrets.get(name)
+            if value is not None and not os.environ.get(name, "").strip():
+                os.environ[name] = str(value)
+    except StreamlitSecretNotFoundError:
+        # Streamlit's secrets mapping can raise lazily on .get() when no
+        # secrets.toml exists. Local development can continue via .env.
+        pass
 
     for name, value in dotenv_values(ROOT / ".env").items():
         if value is not None and not os.environ.get(name, "").strip():
@@ -161,7 +164,15 @@ def _build_sensor_chart(result: DetectionResult, column: str, label: str, units:
     return fig
 
 
-def _handoff_text(result: DetectionResult, sources: list[dict], brief: dict | None, *, synthetic: bool) -> str:
+def _handoff_text(
+    result: DetectionResult,
+    sources: list[dict],
+    brief: dict | None,
+    *,
+    synthetic: bool,
+    commerce: dict | None = None,
+    commerce_origin: str = "Not assessed",
+) -> str:
     title = "SYNTHETIC DEMO SHIFT HANDOFF" if synthetic else "UPLOADED DATA SHIFT HANDOFF"
     lines = [
         f"LOTLENS - {title}", "",
@@ -206,6 +217,28 @@ def _handoff_text(result: DetectionResult, sources: list[dict], brief: dict | No
             lines.append("- No procedure-grounded checks were returned.")
         lines += ["Uncertainty:", brief.get("uncertainty", "")]
 
+    lines += ["", "Commerce inventory impact (human review only):", f"Snapshot: {commerce_origin or 'Not supplied'}"]
+    if commerce and commerce.get("status") == "no_alert":
+        lines.append("No qualifying quality alert; no lot is implicated in this analysis.")
+    elif commerce and commerce.get("status") == "unmapped":
+        lines.append(f"Alerted batch {commerce.get('affected_batch', 'unknown')} was not mapped to a SKU in the supplied inventory snapshot.")
+    elif commerce and commerce.get("status") == "mapped":
+        for product in commerce.get("products", []):
+            lines.append(
+                f"- {product['product_name']} ({product['sku']}): {product['affected_on_hand']} units in the alerted lot, "
+                f"{product['affected_reserved']} reserved; {product['clean_available']} units available in unaffected lots."
+            )
+            lines.append(
+                f"  Reallocation need: {product['reallocation_need']} units; covered: {product['reallocated']}; "
+                f"uncovered: {product['shortfall']}; clean units remaining: {product['clean_remaining']}."
+            )
+            lines.append(
+                "  Suggested review: hold release from the alerted lot pending quality disposition; a quality or fulfillment lead "
+                "must approve any reallocation. No inventory or order was changed."
+            )
+    else:
+        lines.append("No complete inventory and open-orders snapshot was available, so stock impact was not assessed.")
+
     if synthetic:
         lines += ["", "All readings and procedure excerpts in this handoff are synthetic demo material."]
     else:
@@ -220,9 +253,15 @@ with st.sidebar:
     st.markdown('<div class="ll-kicker">Investigation setup</div>', unsafe_allow_html=True)
     source_mode = st.radio("Data source", ["Sample scenario", "Upload CSV"], label_visibility="collapsed")
     uploaded_file = None
+    inventory_file = None
+    orders_file = None
     if source_mode == "Upload CSV":
         uploaded_file = st.file_uploader("Upload production readings", type=["csv"])
         st.caption("CSV stays in this app session. Use synthetic or non-sensitive data only.")
+        st.markdown('<div class="ll-kicker" style="margin-top:.8rem">Commerce context (optional)</div>', unsafe_allow_html=True)
+        inventory_file = st.file_uploader("Upload inventory snapshot CSV", type=["csv"], key="inventory_snapshot")
+        orders_file = st.file_uploader("Upload open-orders CSV", type=["csv"], key="open_orders")
+        st.caption("Both files are needed to show Commerce impact for uploaded production data.")
     else:
         sample_scenario = st.selectbox("Scenario", ["Seeded drift", "Stable process"])
         sample_scenario_key = "drift" if sample_scenario == "Seeded drift" else "stable"
@@ -233,6 +272,20 @@ with st.sidebar:
             "Download sample CSV",
             data=build_sample_dataset(scenario=sample_scenario_key).to_csv(index=False).encode("utf-8"),
             file_name=f"lotlens-synthetic-{sample_scenario_key}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        st.download_button(
+            "Download sample inventory CSV",
+            data=sample_inventory().to_csv(index=False).encode("utf-8"),
+            file_name="lotlens-synthetic-inventory.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        st.download_button(
+            "Download sample open-orders CSV",
+            data=sample_orders().to_csv(index=False).encode("utf-8"),
+            file_name="lotlens-synthetic-open-orders.csv",
             mime="text/csv",
             use_container_width=True,
         )
@@ -274,11 +327,11 @@ with st.sidebar:
 
 st.markdown(
     '<div class="ll-brand"><span class="ll-brand-name">LotLens</span></div>'
-    '<div class="ll-kicker" style="margin-top:.65rem">QUALITY DRIFT INVESTIGATOR · INTELLIGENT INDUSTRY</div>',
+    '<div class="ll-kicker" style="margin-top:.65rem">QUALITY DRIFT INVESTIGATOR · INTELLIGENT INDUSTRY + REINVENT COMMERCE</div>',
     unsafe_allow_html=True,
 )
 st.title("Investigate production drift")
-st.markdown("Surface a sustained quality change, trace the evidence to its batch, and prepare a human-reviewed shift handoff.")
+st.markdown("Surface a sustained quality change, trace the evidence to its batch, and connect an alert to potentially affected stock and open orders for human review.")
 dataset_notice = f"Synthetic demo data - {sample_scenario}" if source_mode == "Sample scenario" else "Uploaded dataset - origin not verified"
 st.markdown(
     f'<div class="ll-status" style="margin:.4rem 0 1.2rem"><span class="ll-status-dot"></span>{html.escape(dataset_notice)}</div>',
@@ -486,6 +539,108 @@ with brief_col:
         )
 
 st.write("")
+st.markdown('<div class="ll-kicker" style="margin-bottom:.35rem">REINVENT COMMERCE · INVENTORY IMPACT</div>', unsafe_allow_html=True)
+st.markdown('<div class="ll-panel-heading">Connect quality alerts to stock and open orders</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="ll-panel-sub">A transparent allocation scenario for inventory and fulfillment teams. '
+    'Recommendations are review prompts; LotLens does not change inventory or orders.</div>',
+    unsafe_allow_html=True,
+)
+
+if source_mode == "Sample scenario":
+    commerce_input = validate_commerce_inputs(sample_inventory(), sample_orders())
+    commerce_origin = "Synthetic commerce snapshot"
+    commerce_parse_error = None
+elif inventory_file is not None and orders_file is not None:
+    try:
+        commerce_inventory = pd.read_csv(BytesIO(inventory_file.getvalue()))
+        commerce_orders = pd.read_csv(BytesIO(orders_file.getvalue()))
+        commerce_input = validate_commerce_inputs(commerce_inventory, commerce_orders)
+        commerce_origin = "Uploaded commerce snapshots · origin not verified"
+        commerce_parse_error = None
+    except Exception as error:
+        commerce_input = None
+        commerce_origin = "Uploaded commerce snapshots · origin not verified"
+        commerce_parse_error = f"LotLens could not read the commerce CSVs ({type(error).__name__}). Industry analysis remains available."
+else:
+    commerce_input = None
+    commerce_origin = ""
+    commerce_parse_error = None
+
+commerce_impact = None
+if detection.status != "drift":
+    commerce_impact = {"status": "no_alert"}
+    st.markdown(
+        '<div class="ll-commerce-state ll-commerce-clear"><b>No lot is currently implicated.</b> '
+        'The selected inspection dataset has no qualifying sustained quality alert under the configured rule.</div>',
+        unsafe_allow_html=True,
+    )
+elif commerce_input is None:
+    if commerce_parse_error:
+        st.warning(commerce_parse_error)
+    else:
+        st.info("Upload both an inventory snapshot and an open-orders CSV to connect this production alert to Commerce data.")
+elif not commerce_input.valid:
+    st.warning("Commerce context needs attention: " + " ".join(commerce_input.errors))
+else:
+    impact = calculate_inventory_impact(detection.batch_id or "", commerce_input.inventory, commerce_input.orders)
+    st.caption(commerce_origin)
+    if impact["status"] == "unmapped":
+        commerce_impact = impact
+        st.warning(f"Alerted batch `{detection.batch_id}` is not mapped to a SKU in this inventory snapshot. Add the lot-to-SKU mapping to assess stock impact.")
+    else:
+        commerce_impact = impact
+        for product in impact["products"]:
+            st.markdown(
+                f"<strong>{html.escape(product['product_name'])}</strong> · SKU "
+                f"<code>{html.escape(product['sku'])}</code> · quality-alert batch "
+                f"<code>{html.escape(impact['affected_batch'])}</code>",
+                unsafe_allow_html=True,
+            )
+            commerce_metrics = st.columns(4, gap="medium")
+            with commerce_metrics[0]:
+                _metric_card("Units in alerted lot", f"{product['affected_on_hand']:,}", f"{product['affected_reserved']:,} already reserved", "#E8B45D")
+            with commerce_metrics[1]:
+                _metric_card("Clean stock available", f"{product['clean_available']:,}", "On hand minus reserved in unaffected lots", "#75C69A")
+            with commerce_metrics[2]:
+                _metric_card("Reallocation need", f"{product['reallocation_need']:,}", f"{product['affected_reserved']:,} reserved + {product['unallocated_open_orders']:,} unallocated orders")
+            with commerce_metrics[3]:
+                _metric_card("Uncovered units", f"{product['shortfall']:,}", "After using available unaffected stock", "#F0786B" if product['shortfall'] else "#75C69A")
+
+            lot_view = commerce_input.inventory.copy()
+            lot_view["available_units"] = lot_view["on_hand_units"] - lot_view["reserved_units"]
+            lot_view["quality_status"] = lot_view["batch_id"].map(
+                lambda batch: "Alerted · review before release" if batch == impact["affected_batch"] else "Unaffected in this analysis"
+            )
+            lot_view = lot_view.loc[lot_view["sku"] == product["sku"], ["batch_id", "on_hand_units", "reserved_units", "available_units", "quality_status"]]
+            st.dataframe(lot_view, use_container_width=True, hide_index=True)
+
+            if product["shortfall"]:
+                commerce_message = (
+                    f"<strong>Proposed human-reviewed action:</strong> Hold release of stock from "
+                    f"<code>{html.escape(impact['affected_batch'])}</code> pending quality disposition. "
+                    f"Allocate up to {product['reallocated']:,} units from unaffected stock and notify fulfillment about the remaining "
+                    f"{product['shortfall']:,}-unit gap. The snapshot has no demand forecast, so LotLens does not estimate future sales or promise delivery dates."
+                )
+                commerce_class = "ll-commerce-state ll-commerce-gap"
+            else:
+                commerce_message = (
+                    f"<strong>Proposed human-reviewed action:</strong> Hold release of stock from "
+                    f"<code>{html.escape(impact['affected_batch'])}</code> pending quality disposition. "
+                    f"The current snapshot has enough unaffected stock to cover {product['reallocation_need']:,} reserved and unallocated units, "
+                    f"leaving {product['clean_remaining']:,} clean units available. A quality or fulfillment lead must approve any reallocation."
+                )
+                commerce_class = "ll-commerce-state ll-commerce-covered"
+            st.markdown(f'<div class="{commerce_class}">{commerce_message}</div>', unsafe_allow_html=True)
+
+st.markdown(
+    '<div class="ll-footnote" style="margin:.55rem 0 1.4rem">Rule: exclude the alerted lot from sellable stock, then compare '
+    'its reserved units plus unallocated open orders with available units in unaffected lots. This is a synthetic snapshot, '
+    'not a demand forecast or an automated hold/replenishment action.</div>',
+    unsafe_allow_html=True,
+)
+
+st.write("")
 evidence_col, source_col = st.columns([1, 1], gap="large")
 with evidence_col:
     st.markdown('<div class="ll-panel-heading">Alert evidence</div><div class="ll-panel-sub">Readings from the first sustained threshold crossing</div>', unsafe_allow_html=True)
@@ -521,7 +676,14 @@ with st.expander("Inspect input readings"):
 
 st.download_button(
     "Download shift handoff",
-    data=_handoff_text(detection, sources, brief, synthetic=source_mode == "Sample scenario"),
+    data=_handoff_text(
+        detection,
+        sources,
+        brief,
+        synthetic=source_mode == "Sample scenario",
+        commerce=commerce_impact,
+        commerce_origin=commerce_origin,
+    ),
     file_name="lotlens-shift-handoff.txt",
     mime="text/plain",
 )

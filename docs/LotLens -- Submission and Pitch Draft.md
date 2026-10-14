@@ -1,6 +1,6 @@
 # LotLens — Submission and Pitch Draft
 
-**Status:** Working draft. The user reports a successful local AMD inference call and completed local manual review. Final submission claims remain gated on suitable AMD service evidence, approved visual assets, a deployed public demo, and a public repository.
+**Status:** Working draft. The user reports successful local and hosted manual reviews, including a live AMD-generated investigation brief. The public repository and demo are available; final submission materials and event-form details remain to be completed.
 
 ## Project title
 
@@ -22,9 +22,9 @@ The current prototype uses synthetic demo data and sample procedure excerpts. It
 
 ## Challenge track
 
-**Intelligent Industry** — primary and intended track. The prototype focuses on manufacturing process-quality monitoring, batch traceability, and a human-reviewed investigation workflow.
+**Intelligent Industry** — completed core workflow: manufacturing process-quality monitoring, batch traceability, and a human-reviewed investigation workflow.
 
-Do not select **Reinvent Commerce** for this submission unless an inventory-impact workflow is implemented and demonstrated end to end. The current MVP does not include that feature.
+**Reinvent Commerce** — inventory-impact extension implemented and manually reviewed in the local app. It maps an alerted lot to SKU stock, compares affected reservations and unallocated orders against unaffected stock, and proposes a human-reviewed allocation. LabLabAI's event page permits selecting one or more tracks; final track choices should reflect the capabilities demonstrated in the submission.
 
 ## Technology tags
 
@@ -53,27 +53,28 @@ Suggested order; adjust the final duration to the event form and team's recordin
 1. **Problem and user:** Quality leads must connect a changing defect trend to a production lot and reconstruct supporting evidence.
 2. **LotLens workflow:** Data input → deterministic drift alert → batch and time-window evidence → procedure excerpts → human-reviewed handoff.
 3. **Product demonstration:** Use the stable and seeded-drift synthetic scenarios and show the real working UI.
-4. **AMD integration:** Explain the exact AMD-hosted model endpoint's role after a successful live call is available; distinguish it from the deterministic detector.
+4. **AMD integration:** Explain the AMD-hosted model endpoint's role and distinguish it from the deterministic detector. The user reports a successful hosted call from `self-dploy/DeepSeek-V4-Flash`; capture suitable evidence without exposing the API key.
 5. **Measured demo result:** Report the seeded fixture's detection delay and stable-scenario false alerts only after the user manually verifies them. Label these as synthetic-demo results, not factory-wide performance.
 6. **Limitations and next steps:** Synthetic data, sample procedures, no confirmed root-cause diagnosis, no live factory connections, and human decision authority.
 
 ## Claims and evidence to finalize for submission
 
-- **AMD:** The manual review record captures the endpoint-reported model and token usage. Add suitable presentation evidence that the successful call used the event-eligible AMD service; do not expose the API key.
-- **Behavior:** The user-reported local manual review recorded that the stable fixture did not alert and the seeded fixture met its onset/confirmation target. Repeat on the hosted build if its configuration differs.
+- **AMD:** The manual review record captures the endpoint-reported model and token usage for local and hosted calls. Add suitable presentation evidence that the successful call used the event-eligible AMD service; do not expose the API key.
+- **Behavior:** User-reported local and hosted reviews passed. The hosted review included drift onset/confirmation and a source-linked AMD brief; the local review also recorded the stable fixture's no-alert result and seeded fixture metrics.
 - **Grounding:** The user-reported MV-06 retest found source-linked checks and no unsupported sensor-range claim. Recheck if the model configuration or prompt changes.
-- **Demo access:** The public source repository is [khalid-hussain-dev/amd-act-iii](https://github.com/khalid-hussain-dev/amd-act-iii). Add the public app URL after deployment and hosted review.
+- **Demo access:** Public source repository: [khalid-hussain-dev/amd-act-iii](https://github.com/khalid-hussain-dev/amd-act-iii). Live demo: [lotlens.streamlit.app](https://lotlens.streamlit.app/); the user reports that hosted review passed.
 - **Visuals:** Add the approved cover and any presentation assets. Keep the plain-text `LotLens` placeholder until the finished logo is supplied.
 - **Event form:** Confirm the live submission deadline, title/description limits, required media, and available technology tags in the dashboard before submitting.
 
 ## Submission readiness
 
 - [x] Draft project title and descriptions prepared.
-- [x] Primary track rationale recorded; no unsupported second-track claim.
+- [x] Primary track rationale and reviewed additional track capability recorded; final selected tracks remain to be chosen in the dashboard.
 - [x] Demo order and pitch structure drafted.
 - [x] Local AMD call completed and reviewed by the user; outcome and model attribution are recorded in the Manual Verification Guide.
 - [x] Local synthetic demo metrics manually recorded: stable scenario produced no alert; seeded drift onset was at 11:20 and confirmation at 11:40 (20-minute delay).
 - [ ] Final technology tags checked against the live dashboard.
 - [x] Public repository supplied: https://github.com/khalid-hussain-dev/amd-act-iii.
-- [ ] Cover, video, slides, and public demo URL supplied.
+- [x] Public demo URL supplied and hosted review reported passed: https://lotlens.streamlit.app/.
+- [ ] Cover, demo video, and slides prepared.
 - [ ] Current submission requirements and deadline confirmed; submission completed by the team.

@@ -1,6 +1,6 @@
 # LotLens — Deployment Guide
 
-This guide prepares the existing Streamlit app for deployment. Streamlit Community Cloud is the selected initial host; the Docker container instructions remain available for local use or a later host. Deployment is not complete until the app is published, hosted secrets are configured, and the public URL is manually reviewed.
+This guide documents the Streamlit app deployment. Streamlit Community Cloud is the current host; the Docker container instructions remain available for local use or a later host. The user reports that the public app and AMD-generated brief were manually reviewed successfully on 14 October 2026. See the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md) for the hosted review record.
 
 ## Container contract
 
@@ -60,11 +60,11 @@ Before choosing a provider, confirm that it:
 1. Select the hosting provider and create the public service from the project root.
 2. Configure the runtime secrets above and the host-provided port setting. Keep credentials out of build logs and deployment notes.
 3. Deploy the container and open the public URL in a clean browser session.
-4. After deployment, manually review both sample scenarios, the CSV path, and the investigation brief on the hosted build. The user has completed these checks on the local build; confirm that deployment configuration has not changed the behavior and that errors preserve the calculated analysis.
+4. After deployment, manually review both sample scenarios, the CSV path, and the investigation brief on the hosted build. The user reports completing the hosted review successfully; repeat relevant checks after material changes and confirm that errors preserve the calculated analysis.
 5. Confirm that uploaded data is synthetic or non-sensitive, and that the demo makes its synthetic procedure excerpts clear.
-6. Record the public URL, deployment revision, and manual review outcome in the completion checklist.
+6. Record the public URL, deployment revision, and manual review outcome in the completion checklist. Current public URL: [https://lotlens.streamlit.app/](https://lotlens.streamlit.app/).
 7. Publish the source repository only after reviewing the staged files for credentials and private data.
 
 ## Deployment handoff
 
-The public repository's initial commit has been pushed. The Streamlit Community Cloud account connection, deployment secrets, public URL, and hosted review remain team actions. This guide and the deployment configuration are preparation; they do not claim that LotLens has been deployed or that the hosted app can reach AMD from its network.
+The public repository has been pushed and the app is live at [https://lotlens.streamlit.app/](https://lotlens.streamlit.app/). The user reports a successful hosted review, including generation of an AMD investigation brief. Codex has not independently checked the account settings or repeated the hosted review.
