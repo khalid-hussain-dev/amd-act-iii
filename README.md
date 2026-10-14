@@ -78,6 +78,7 @@ For uploaded production readings, upload both additional CSVs from the sidebar t
 - [Project brief and phased build plan](docs/LotLens%20--%20Project%20Brief%20and%20Build%20Plan.md)
 - [Phase completion checklist and required user inputs](docs/LotLens%20--%20Completion%20Checklist.md)
 - [Manual verification steps and results log](docs/LotLens%20--%20Manual%20Verification%20Guide.md)
+- [Real-data pilot and verification guide](docs/Real-Data%20Pilot%20and%20Verification%20Guide.md)
 - [Deployment guide and host requirements](docs/Deployment%20Guide.md)
 - [Submission copy and pitch outline draft](docs/LotLens%20--%20Submission%20and%20Pitch%20Draft.md)
 - [Visual identity and color system](docs/LotLens%20--%20Visual%20Identity%20%26%20Color%20System.md)

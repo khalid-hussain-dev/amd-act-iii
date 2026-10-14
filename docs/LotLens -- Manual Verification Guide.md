@@ -176,7 +176,15 @@ The Commerce panel was added after the Track 1 review recorded above. The user r
 
 **Result:** Pass — user screenshots on 14 October 2026 showed all three uploaded-data cases: the mapped alert displayed SKU-level inventory impact; the unmapped alert requested a lot-to-SKU mapping; and an invalid inventory schema produced a clear warning while the Industry chart and alert evidence remained visible. The missing-file prompt is present in the app, but a missing-file screenshot was not provided; the invalid-file case satisfies the guide's absent-or-invalid fallback check.
 
-**Build/revision:** Local working tree based on `509445f`, with uncommitted Commerce changes. Do not include API keys, screenshots of secrets, or real factory data.
+**Build/revision at time of user screenshots:** Local working tree based on `509445f`, with Commerce changes not yet committed; those changes were committed as `22ae0d5`. Do not include API keys, screenshots of secrets, or real factory data.
+
+### Codex focused verification — 14 October 2026
+
+**Build/revision checked:** `22ae0d5` (`Add and document Reinvent Commerce workflow`); application code was unchanged during this check. The uncommitted changes at the time were documentation only.
+
+**Result:** Pass — 20 focused assertions passed locally. The checks accepted the synthetic production CSV, detected the sustained drift on `LOT-8042-B` with three evidence readings, produced no alert for the stable sample, accepted mapped Commerce inputs, confirmed the expected allocation figures (180 affected, 65 reserved, 230 clean available, 120 unallocated orders, 185 need, 0 uncovered, 45 remaining), returned `unmapped` for a valid inventory snapshot without the alerted batch, and rejected an inventory CSV with missing required fields. A Streamlit `AppTest` startup smoke run also completed without uncaught exceptions (8 main-area and 14 sidebar elements rendered).
+
+**Limit:** These checks used synthetic sample data and synthetic fixtures only. They do not validate the detector against factory history, establish statistical suitability for a production line, or verify AMD endpoint behavior. The real-data pilot remains unperformed because no approved, sanitized factory dataset was available in the workspace.
 
 ## 4. Repeat the local review after a material change
 
