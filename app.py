@@ -1,0 +1,539 @@
+from __future__ import annotations
+
+import hashlib
+import html
+import os
+from io import BytesIO
+from pathlib import Path
+
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+from dotenv import dotenv_values
+
+from lotlens.amd_client import describe_inference_error, generate_investigation_brief, is_configured, missing_settings
+from lotlens.detector import DetectionResult, detect_quality_drift, validate_dataframe
+from lotlens.evidence import build_retrieval_query, retrieve_procedures
+from lotlens.sample_data import build_sample_dataset
+
+
+ROOT = Path(__file__).resolve().parent
+
+
+def _load_runtime_env() -> None:
+    """Fill missing AMD settings from Streamlit secrets or local .env.
+
+    Explicit process environment values take precedence, followed by hosted
+    Streamlit secrets and then local dotenv values. This keeps credentials out
+    of the repository and avoids replacing host-provided configuration.
+    """
+    try:
+        hosted_secrets = st.secrets
+    except FileNotFoundError:
+        hosted_secrets = {}
+
+    for name in ("AMD_CHAT_COMPLETIONS_URL", "AMD_MODEL_NAME", "AMD_API_KEY"):
+        value = hosted_secrets.get(name)
+        if value is not None and not os.environ.get(name, "").strip():
+            os.environ[name] = str(value)
+
+    for name, value in dotenv_values(ROOT / ".env").items():
+        if value is not None and not os.environ.get(name, "").strip():
+            os.environ[name] = value
+
+
+_load_runtime_env()
+
+st.set_page_config(
+    page_title="LotLens — Quality Drift Investigator",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+
+def _inject_theme() -> None:
+    css = (ROOT / "assets" / "theme.css").read_text(encoding="utf-8")
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
+def _metric_card(label: str, value: str, note: str, accent: str = "") -> None:
+    style = f"border-top:2px solid {accent};" if accent else ""
+    st.markdown(
+        f'<div class="ll-card" style="{style}">'
+        f'<div class="ll-card-title">{html.escape(label)}</div>'
+        f'<div class="ll-card-value">{html.escape(value)}</div>'
+        f'<div class="ll-card-note">{html.escape(note)}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _fmt_pct(value: float | None) -> str:
+    return "—" if value is None else f"{value:.2f}%"
+
+
+def _fmt_timestamp(value: str | None) -> str:
+    if not value:
+        return "—"
+    return pd.Timestamp(value).strftime("%b %d · %H:%M")
+
+
+def _build_chart(result: DetectionResult) -> go.Figure:
+    data = result.chart_data
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data["timestamp"],
+            y=data["defect_rate_pct"],
+            mode="lines+markers",
+            name="Inspection defect rate",
+            line={"color": "#E0E7DD", "width": 2.3},
+            marker={"color": "#E0E7DD", "size": 5},
+            hovertemplate="%{x|%b %d, %H:%M}<br>Defect rate: %{y:.2f}%<extra>Inspection sample</extra>",
+        )
+    )
+    fig.add_hline(y=result.baseline_rate_pct, line_color="#B8CBA8", line_dash="dot", line_width=1.5,
+                  annotation_text="Stable baseline", annotation_position="bottom right",
+                  annotation_font_color="#B8CBA8")
+    fig.add_hline(y=result.threshold_rate_pct, line_color="#E8B45D", line_dash="dash", line_width=1.4,
+                  annotation_text="Alert threshold", annotation_position="top right",
+                  annotation_font_color="#E8B45D")
+    if result.onset_time:
+        onset = pd.Timestamp(result.onset_time)
+        point = data.loc[data["timestamp"] == onset].iloc[0]
+        fig.add_trace(go.Scatter(
+            x=[onset], y=[point["defect_rate_pct"]], mode="markers", name="Detected change point",
+            marker={"color": "#F0786B", "size": 12, "line": {"color": "#101311", "width": 2}},
+            hovertemplate="Change point<br>%{x|%b %d, %H:%M}<br>%{y:.2f}%<extra></extra>",
+        ))
+        fig.add_vline(x=onset, line_color="#F0786B", line_dash="dot", line_width=1)
+
+    fig.update_layout(
+        height=340, margin={"l": 8, "r": 12, "t": 24, "b": 8},
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font={"family": "Inter, sans-serif", "color": "#C1C8BF", "size": 11},
+        legend={"orientation": "h", "y": 1.13, "x": 0, "font": {"size": 10}},
+        hoverlabel={"bgcolor": "#202722", "bordercolor": "#343D36", "font": {"color": "#F0F1E9"}},
+        xaxis={"showgrid": False, "showline": True, "linecolor": "#343D36",
+               "tickfont": {"color": "#929B92", "family": "IBM Plex Mono, monospace", "size": 9}, "title": None},
+        yaxis={"ticksuffix": "%", "showgrid": True, "gridcolor": "#272F29", "zeroline": False,
+               "tickfont": {"color": "#929B92", "family": "IBM Plex Mono, monospace", "size": 9}, "title": None},
+    )
+    return fig
+
+
+def _build_sensor_chart(result: DetectionResult, column: str, label: str, units: str, color: str) -> go.Figure:
+    data = result.chart_data
+    baseline = float(data.iloc[: result.baseline_points][column].mean())
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data["timestamp"],
+            y=data[column],
+            mode="lines+markers",
+            name=label,
+            line={"color": color, "width": 2},
+            marker={"color": color, "size": 5},
+            hovertemplate=f"%{{x|%b %d, %H:%M}}<br>{label}: %{{y:.2f}} {units}<extra></extra>",
+        )
+    )
+    fig.add_hline(
+        y=baseline,
+        line_color="#B8CBA8",
+        line_dash="dot",
+        line_width=1.3,
+        annotation_text="Baseline mean",
+        annotation_position="bottom right",
+        annotation_font_color="#B8CBA8",
+    )
+    if result.onset_time:
+        fig.add_vline(x=pd.Timestamp(result.onset_time), line_color="#F0786B", line_dash="dot", line_width=1)
+    fig.update_layout(
+        height=250,
+        margin={"l": 8, "r": 12, "t": 16, "b": 4},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"family": "Inter, sans-serif", "color": "#C1C8BF", "size": 11},
+        showlegend=False,
+        hoverlabel={"bgcolor": "#202722", "bordercolor": "#343D36", "font": {"color": "#F0F1E9"}},
+        xaxis={"showgrid": False, "showline": True, "linecolor": "#343D36", "title": None},
+        yaxis={"ticksuffix": f" {units}", "showgrid": True, "gridcolor": "#272F29", "zeroline": False, "title": None},
+    )
+    return fig
+
+
+def _handoff_text(result: DetectionResult, sources: list[dict], brief: dict | None, *, synthetic: bool) -> str:
+    title = "SYNTHETIC DEMO SHIFT HANDOFF" if synthetic else "UPLOADED DATA SHIFT HANDOFF"
+    lines = [
+        f"LOTLENS - {title}", "",
+        f"Status: {'Drift detected' if result.status == 'drift' else 'No qualifying drift detected'}",
+        f"Line: {result.line_id or 'Not identified'}",
+        f"Affected batch: {result.batch_id or 'None identified'}",
+        f"Drift onset: {_fmt_timestamp(result.onset_time)}",
+        f"Alert confirmed: {_fmt_timestamp(result.confirmed_time)}",
+        f"Baseline defect rate: {_fmt_pct(result.baseline_rate_pct)}",
+        f"Alert threshold: {_fmt_pct(result.threshold_rate_pct)}",
+        f"Latest defect rate: {_fmt_pct(result.current_rate_pct)}",
+        f"Baseline readings: {result.baseline_points}",
+        f"Required sustained crossings: {result.sustained_points}",
+        "", "Detector finding:", result.message, "", "Supporting readings:",
+    ]
+    if result.evidence:
+        for row in result.evidence:
+            lines.append(
+                f"- {_fmt_timestamp(row['timestamp'])} | {row['batch_id']} | "
+                f"{row['defect_count']}/{row['units_inspected']} defects ({row['defect_rate_pct']:.2f}%) | "
+                f"{row['temperature_c']:.2f} C | {row['vibration_mm_s']:.2f} mm/s | {row['pressure_bar']:.2f} bar"
+            )
+            if row.get("operator_note"):
+                lines.append(f"  Operator note: {row['operator_note']}")
+    else:
+        lines.append("No sustained threshold-crossing readings were recorded by the detector.")
+
+    lines += ["", "Procedure references (synthetic excerpts):"]
+    for source in sources:
+        lines += [f"- {source['title']} [{source['source_id']}]"]
+        lines.append(f"  {source['text'].replace(chr(10), chr(10) + '  ')}")
+
+    if brief:
+        lines += ["", "AI-generated interpretation (review before use):", brief.get("summary", "")]
+        provider = brief.get("_provider", {})
+        if provider.get("model"):
+            lines.append(f"AMD endpoint model: {provider['model']}")
+        lines.append("Possible checks (source-grounded; human review required):")
+        if brief.get("possible_checks"):
+            lines.extend(f"- {item.get('text', '')} [{item.get('source_id', '')}]" for item in brief["possible_checks"])
+        else:
+            lines.append("- No procedure-grounded checks were returned.")
+        lines += ["Uncertainty:", brief.get("uncertainty", "")]
+
+    if synthetic:
+        lines += ["", "All readings and procedure excerpts in this handoff are synthetic demo material."]
+    else:
+        lines += ["", "This handoff was generated from an uploaded CSV; its origin has not been verified by LotLens."]
+    lines.append("Human review is required. LotLens does not confirm root cause or authorize operational actions.")
+    return "\n".join(lines)
+
+
+_inject_theme()
+
+with st.sidebar:
+    st.markdown('<div class="ll-kicker">Investigation setup</div>', unsafe_allow_html=True)
+    source_mode = st.radio("Data source", ["Sample scenario", "Upload CSV"], label_visibility="collapsed")
+    uploaded_file = None
+    if source_mode == "Upload CSV":
+        uploaded_file = st.file_uploader("Upload production readings", type=["csv"])
+        st.caption("CSV stays in this app session. Use synthetic or non-sensitive data only.")
+    else:
+        sample_scenario = st.selectbox("Scenario", ["Seeded drift", "Stable process"])
+        sample_scenario_key = "drift" if sample_scenario == "Seeded drift" else "stable"
+        st.caption("Seeded scenario · one stable interval and one quality drift")
+
+    if source_mode == "Sample scenario":
+        st.download_button(
+            "Download sample CSV",
+            data=build_sample_dataset(scenario=sample_scenario_key).to_csv(index=False).encode("utf-8"),
+            file_name=f"lotlens-synthetic-{sample_scenario_key}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    st.divider()
+    st.markdown('<div class="ll-kicker">Detector rule</div>', unsafe_allow_html=True)
+    st.caption("Baseline: first 60% of readings")
+    st.caption("Alert: 3 consecutive defect-rate readings above baseline + max(3σ, 2 pp)")
+    st.caption("Statistical findings are calculated locally. The model does not calculate the alert.")
+    st.divider()
+    if is_configured():
+        st.markdown(
+            '<div class="ll-config-state ll-config-ready">'
+            '<span class="ll-config-dot"></span><div>'
+            '<div class="ll-config-title">AMD inference ready</div>'
+            '<div class="ll-config-copy">Endpoint, model, and API key are available to this app.</div>'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        missing = missing_settings()
+        missing_label = ", ".join(name.removeprefix("AMD_").replace("_", " ").lower() for name in missing)
+        missing_display = html.escape(missing_label or "configuration")
+        st.markdown(
+            '<div class="ll-config-state ll-config-pending">'
+            '<span class="ll-config-dot"></span><div>'
+            '<div class="ll-config-title">AMD brief awaiting credentials</div>'
+            f'<div class="ll-config-copy">Missing: {missing_display}. The detector and evidence stay available.</div>'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            "Reload AMD settings from .env",
+            use_container_width=True,
+            help="After adding the API key, select this to load it without restarting the app.",
+        ):
+            _load_runtime_env()
+            st.rerun()
+
+st.markdown(
+    '<div class="ll-brand"><span class="ll-brand-name">LotLens</span></div>'
+    '<div class="ll-kicker" style="margin-top:.65rem">QUALITY DRIFT INVESTIGATOR · INTELLIGENT INDUSTRY</div>',
+    unsafe_allow_html=True,
+)
+st.title("Investigate production drift")
+st.markdown("Surface a sustained quality change, trace the evidence to its batch, and prepare a human-reviewed shift handoff.")
+dataset_notice = f"Synthetic demo data - {sample_scenario}" if source_mode == "Sample scenario" else "Uploaded dataset - origin not verified"
+st.markdown(
+    f'<div class="ll-status" style="margin:.4rem 0 1.2rem"><span class="ll-status-dot"></span>{html.escape(dataset_notice)}</div>',
+    unsafe_allow_html=True,
+)
+
+read_error = None
+if source_mode == "Sample scenario":
+    current_data = build_sample_dataset(scenario=sample_scenario_key)
+    validation = validate_dataframe(current_data)
+    dataset_key = f"sample-scenario-v1:{sample_scenario_key}"
+else:
+    current_data = None
+    validation = None
+    dataset_key = None
+    if uploaded_file is not None:
+        uploaded_bytes = uploaded_file.getvalue()
+        content_digest = hashlib.sha256(uploaded_bytes).hexdigest()
+        dataset_key = f"{uploaded_file.name}:{content_digest}"
+        try:
+            current_data = pd.read_csv(BytesIO(uploaded_bytes))
+            validation = validate_dataframe(current_data)
+        except Exception as error:
+            validation = None
+            read_error = f"LotLens could not read this CSV ({type(error).__name__}). Check that it is a valid UTF-8 CSV file."
+
+if dataset_key != st.session_state.get("dataset_key"):
+    st.session_state["dataset_key"] = dataset_key
+    st.session_state["detection"] = None
+    st.session_state["sources"] = []
+    st.session_state["brief"] = None
+    st.session_state["brief_error"] = None
+    st.session_state["run_attempted"] = False
+
+if read_error:
+    st.error(read_error)
+    st.caption("The file could not be parsed. This is an input-format issue, not evidence of a production-quality problem.")
+    st.stop()
+
+if current_data is None:
+    st.info("Choose a CSV file to begin. The sample scenario remains available from the data-source selector.")
+    st.stop()
+
+if validation is not None and not validation.valid:
+    if current_data is not None and len(current_data) < 12:
+        st.info("Insufficient evidence: LotLens needs at least 12 readings to form a baseline and monitored period.")
+    else:
+        st.error("Input validation needs attention: " + " ".join(validation.errors))
+    st.caption("Input errors do not indicate a production-quality failure.")
+    st.stop()
+
+analysis_input = validation.data
+input_start = analysis_input["timestamp"].iloc[0].strftime("%b %d, %H:%M")
+input_end = analysis_input["timestamp"].iloc[-1].strftime("%b %d, %H:%M")
+input_batches = int(analysis_input["batch_id"].nunique())
+input_summary_columns = st.columns(3, gap="medium")
+with input_summary_columns[0]:
+    _metric_card("Readings", f"{len(analysis_input):,}", "Timestamped inspection samples")
+with input_summary_columns[1]:
+    _metric_card("Production line", str(analysis_input["line_id"].iloc[0]), f"{input_batches} batch(es) in this file")
+with input_summary_columns[2]:
+    _metric_card("Time window", input_start, f"Through {input_end}")
+
+action_col, description_col = st.columns([1.15, 4.85], vertical_alignment="center")
+with action_col:
+    if st.button("Run analysis", type="primary", use_container_width=True):
+        try:
+            with st.spinner("Calculating the quality baseline and checking for sustained drift..."):
+                st.session_state["detection"] = detect_quality_drift(validation.data)
+                detection = st.session_state["detection"]
+                st.session_state["sources"] = retrieve_procedures(build_retrieval_query(detection.to_public_dict()))
+                st.session_state["brief"] = None
+                st.session_state["brief_error"] = None
+                st.session_state["run_attempted"] = True
+            st.rerun()
+        except ValueError as error:
+            st.error(str(error))
+with description_col:
+    st.markdown('<div class="ll-footnote">The detector compares inspection defect rates against a stable baseline. A generated explanation is optional and never replaces the measured evidence.</div>', unsafe_allow_html=True)
+
+detection = st.session_state.get("detection")
+sources = st.session_state.get("sources", [])
+brief = st.session_state.get("brief")
+if detection is None:
+    st.info("Dataset ready. Select **Run analysis** to calculate the baseline and inspect this dataset for sustained drift.")
+    st.stop()
+
+status_class = "ll-status" if detection.status == "drift" else "ll-status ll-status-normal"
+status_label = "Drift detected" if detection.status == "drift" else "No qualifying drift"
+st.markdown(f'<div class="{status_class}"><span class="ll-status-dot"></span>{status_label}</div>', unsafe_allow_html=True)
+st.markdown(f"<p class='ll-footnote' style='margin:.55rem 0 1.2rem'>{html.escape(detection.message)}</p>", unsafe_allow_html=True)
+
+metric_columns = st.columns(4, gap="medium")
+with metric_columns[0]:
+    _metric_card("Affected production lot", detection.batch_id or "None identified", detection.line_id or "Line not identified", "#E8B45D" if detection.status == "drift" else "#75C69A")
+with metric_columns[1]:
+    _metric_card("Drift onset", _fmt_timestamp(detection.onset_time), f"Confirmed at {_fmt_timestamp(detection.confirmed_time)}" if detection.confirmed_time else "No sustained threshold crossing")
+with metric_columns[2]:
+    _metric_card("Stable baseline", _fmt_pct(detection.baseline_rate_pct), f"First {detection.baseline_points} readings")
+with metric_columns[3]:
+    delta = f"{detection.current_rate_pct - detection.baseline_rate_pct:+.2f} percentage points vs baseline" if detection.current_rate_pct is not None and detection.baseline_rate_pct is not None else "No comparable readings"
+    _metric_card("Latest defect rate", _fmt_pct(detection.current_rate_pct), delta)
+
+st.write("")
+chart_col, brief_col = st.columns([1.65, 1], gap="large")
+with chart_col:
+    st.markdown('<div class="ll-panel-heading">Quality trend</div><div class="ll-panel-sub">Inspection defects over time · baseline and alert threshold</div>', unsafe_allow_html=True)
+    st.plotly_chart(_build_chart(detection), use_container_width=True, config={"displayModeBar": False})
+    with st.expander("Inspect machine signal context"):
+        signal_options = {
+            "Temperature": ("temperature_c", "Temperature", "deg C", "#B6A4E0"),
+            "Vibration": ("vibration_mm_s", "Vibration", "mm/s", "#9DBDD9"),
+            "Pressure": ("pressure_bar", "Pressure", "bar", "#D0B17A"),
+        }
+        selected_signal = st.selectbox("Machine signal", list(signal_options), key="machine_signal")
+        column, label, units, color = signal_options[selected_signal]
+        st.plotly_chart(
+            _build_sensor_chart(detection, column, label, units, color),
+            use_container_width=True,
+            config={"displayModeBar": False},
+        )
+        st.caption("Signal context only. The alert rule uses inspection defect rate; this baseline mean is descriptive and is not an operating limit.")
+    st.markdown('<div class="ll-footnote">The threshold is calculated as baseline mean + max(3 population standard deviations, 2 percentage points). An alert requires three consecutive readings above it.</div>', unsafe_allow_html=True)
+
+with brief_col:
+    facts = []
+    if detection.status == "drift":
+        facts.append(
+            f"Lot {html.escape(detection.batch_id or 'not identified')} on line "
+            f"{html.escape(detection.line_id or 'not identified')} crossed the threshold at "
+            f"{html.escape(_fmt_timestamp(detection.onset_time))} and was confirmed at "
+            f"{html.escape(_fmt_timestamp(detection.confirmed_time))}."
+        )
+    else:
+        facts.append("No qualifying sustained increase was found under the configured detector rule.")
+    facts.append(
+        f"Baseline {_fmt_pct(detection.baseline_rate_pct)} | threshold {_fmt_pct(detection.threshold_rate_pct)} | "
+        f"latest {_fmt_pct(detection.current_rate_pct)}"
+    )
+
+    panel = [
+        '<div class="ll-ai-box">',
+        '<div class="ll-ai-label">AMD-backed AI interpretation</div>',
+        '<div class="ll-ai-facts"><div class="ll-ai-section-title">Calculated evidence</div>',
+        f"<p>{'<br>'.join(facts)}</p></div>",
+    ]
+    if brief:
+        panel.extend([
+            '<div class="ll-ai-content"><div class="ll-ai-section-title">AMD-generated investigation summary</div>',
+            f"<p>{html.escape(brief['summary']).replace(chr(10), '<br>')}</p>",
+            '<div class="ll-ai-section-title">Possible checks | human review required</div>',
+        ])
+        provider = brief.get("_provider", {})
+        if provider.get("model"):
+            usage_text = ""
+            if isinstance(provider.get("total_tokens"), int):
+                usage_text = f" | {provider['total_tokens']:,} tokens"
+            panel.append(
+                f"<div class='ll-ai-meta'>AMD model: {html.escape(str(provider['model']))}{usage_text}</div>"
+            )
+        if brief.get("possible_checks"):
+            panel.append("<ul>")
+            for check in brief["possible_checks"]:
+                panel.append(
+                    f"<li>{html.escape(check.get('text', ''))} "
+                    f"<span class='ll-ai-source-tag'>[{html.escape(check.get('source_id', ''))}]</span></li>"
+                )
+            panel.append("</ul>")
+        else:
+            panel.append("<p>The supplied procedures did not support a specific check.</p>")
+        panel.extend([
+            '<div class="ll-ai-section-title">Uncertainty</div>',
+            f"<p>{html.escape(brief['uncertainty']).replace(chr(10), '<br>')}</p></div>",
+        ])
+    elif st.session_state.get("brief_error"):
+        panel.append(f"<div class='ll-ai-notice'>{html.escape(st.session_state['brief_error'])}</div>")
+        panel.append("<p class='ll-footnote'>The calculated alert and source excerpts remain available.</p>")
+    else:
+        panel.append(
+            '<div class="ll-ai-content"><p>The model will summarize the calculated finding, suggest only checks tied to the supplied procedure excerpts, and state what remains uncertain.</p></div>'
+        )
+    panel.append("</div>")
+    st.markdown("".join(panel), unsafe_allow_html=True)
+
+    if is_configured():
+        if st.button("Generate investigation brief", use_container_width=True, key="generate_brief"):
+            try:
+                with st.spinner("Requesting an investigation brief from the AMD model..."):
+                    st.session_state["brief"] = generate_investigation_brief(detection.to_public_dict(), sources)
+                    st.session_state["brief_error"] = None
+            except Exception as error:
+                st.session_state["brief"] = None
+                st.session_state["brief_error"] = describe_inference_error(error)
+            st.rerun()
+    else:
+        missing_label = ", ".join(name.removeprefix("AMD_").replace("_", " ").lower() for name in missing_settings())
+        st.markdown(
+            '<div class="ll-ai-connect">'
+            '<div class="ll-ai-connect-title">Connect the AMD investigation brief</div>'
+            '<p>The local detector, charts, and source evidence are ready now. Add the missing '
+            f"{html.escape(missing_label)} setting(s) to the project-root `.env`, then select "
+            '<b>Reload AMD settings from .env</b> in the sidebar. The brief action will become available automatically.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+st.write("")
+evidence_col, source_col = st.columns([1, 1], gap="large")
+with evidence_col:
+    st.markdown('<div class="ll-panel-heading">Alert evidence</div><div class="ll-panel-sub">Readings from the first sustained threshold crossing</div>', unsafe_allow_html=True)
+    if detection.evidence:
+        for row in detection.evidence:
+            note = f" · Note: {row['operator_note']}" if row.get("operator_note") else ""
+            st.markdown(
+                '<div class="ll-evidence">'
+                f"<b>{html.escape(_fmt_timestamp(row['timestamp']))}</b> · {html.escape(row['batch_id'])}<br>"
+                f"Defects: {row['defect_count']} / {row['units_inspected']} ({row['defect_rate_pct']:.2f}%) · "
+                f"Temp {row['temperature_c']:.1f} °C · Vibration {row['vibration_mm_s']:.2f} mm/s · "
+                f"Pressure {row['pressure_bar']:.2f} bar{html.escape(note)}"
+                "</div><div style='height:.45rem'></div>",
+                unsafe_allow_html=True,
+            )
+    else:
+        st.markdown('<div class="ll-source"><div class="ll-source-text">No sustained drift evidence was found under the configured rule. This does not prove that every quality condition is normal.</div></div>', unsafe_allow_html=True)
+
+with source_col:
+    st.markdown('<div class="ll-panel-heading">Procedure references</div><div class="ll-panel-sub">Synthetic demo excerpts · not approved operating procedures</div>', unsafe_allow_html=True)
+    for source in sources:
+        st.markdown(
+            '<div class="ll-source">'
+            f"<div class='ll-source-id'>{html.escape(source['source_id'])}</div>"
+            f"<div class='ll-source-title'>{html.escape(source['title'])}</div>"
+            f"<div class='ll-source-text'>{html.escape(source['text'])}</div>"
+            "</div><div style='height:.5rem'></div>",
+            unsafe_allow_html=True,
+        )
+
+with st.expander("Inspect input readings"):
+    st.dataframe(validation.data, use_container_width=True, hide_index=True)
+
+st.download_button(
+    "Download shift handoff",
+    data=_handoff_text(detection, sources, brief, synthetic=source_mode == "Sample scenario"),
+    file_name="lotlens-shift-handoff.txt",
+    mime="text/plain",
+)
+footer_provenance = (
+    "The dataset and procedure excerpts are synthetic demo material."
+    if source_mode == "Sample scenario"
+    else "The uploaded dataset's origin is not verified; the procedure excerpts are synthetic demo material."
+)
+st.markdown(
+    '<div class="ll-footnote" style="margin-top:1rem">'
+    f"LotLens provides an investigation aid, not a confirmed root-cause diagnosis or authorization to act. {html.escape(footer_provenance)}"
+    "</div>",
+    unsafe_allow_html=True,
+)
+

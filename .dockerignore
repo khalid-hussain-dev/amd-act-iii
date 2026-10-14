@@ -1,0 +1,13 @@
+.git/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.streamlit/secrets.toml
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+lotlens-shift-handoff.txt
+lotlens-synthetic-*.csv
