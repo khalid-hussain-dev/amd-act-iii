@@ -14,11 +14,11 @@ LotLens detects sustained quality drift in manufacturing data, traces the alert 
 
 Manufacturing quality teams can spend valuable time reconstructing which production lot changed, when the shift began, and what evidence supports an alert. LotLens brings timestamped inspection results and machine readings into one investigation workspace.
 
-Choose a clearly labeled synthetic scenario or upload a CSV. LotLens validates the readings, calculates a stable baseline, and applies an explainable rule that flags a sustained increase in the inspection defect rate. The interface identifies the affected line and batch, marks the onset and confirmation times, and shows the readings behind the alert alongside the trend and relevant procedure excerpts.
+Choose the included factory-derived synthetic LINE-04 fixture, one of two reproducible synthetic scenarios, or upload a CSV. LotLens validates the readings, calculates a stable baseline, and applies an explainable rule that flags a sustained increase in the inspection defect rate. The interface identifies the affected line and batch, marks the onset and confirmation times, and shows the readings behind the alert alongside the trend and relevant procedure excerpts.
 
 When AMD model access is configured, an AMD-hosted open model turns the calculated findings and supplied procedure excerpts into a concise investigation brief. The app keeps detector-calculated facts separate from model-written interpretation, shows the sources for proposed checks, and makes uncertainty visible. A quality lead reviews the handoff and decides what to do; LotLens does not diagnose a confirmed root cause or control production equipment.
 
-The current prototype uses synthetic demo data and sample procedure excerpts. It is an investigation aid, not a validated industrial quality-control system.
+The current prototype uses synthetic demo data (including the factory-derived synthetic fixture) and sample procedure excerpts. It is an investigation aid, not a validated industrial quality-control system.
 
 ## Challenge track
 
@@ -63,7 +63,7 @@ Suggested order; adjust the final duration to the event form and team's recordin
 - **Behavior:** User-reported local and hosted reviews passed. The hosted review included drift onset/confirmation and a source-linked AMD brief; the local review also recorded the stable fixture's no-alert result and seeded fixture metrics.
 - **Grounding:** The user-reported MV-06 retest found source-linked checks and no unsupported sensor-range claim. Recheck if the model configuration or prompt changes.
 - **Demo access:** Public source repository: [khalid-hussain-dev/amd-act-iii](https://github.com/khalid-hussain-dev/amd-act-iii). Live demo: [lotlens.streamlit.app](https://lotlens.streamlit.app/); the user reports that hosted review passed.
-- **Visuals:** Add the approved cover and any presentation assets. Keep the plain-text `LotLens` placeholder until the finished logo is supplied.
+- **Visuals:** The supplied LotLens lockup and aperture favicon are integrated in the app. Prepare the separate submission cover and presentation assets during final submission preparation.
 - **Event form:** Confirm the live submission deadline, title/description limits, required media, and available technology tags in the dashboard before submitting.
 
 ## Submission readiness

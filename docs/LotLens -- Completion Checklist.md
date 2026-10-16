@@ -14,7 +14,7 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 
 - The production-quality alert, synthetic stable/drift scenarios, evidence, procedure-grounded AMD brief, review UI, and handoff are implemented.
 - The public repository and deployed app are recorded as live; hosted success is user-reported.
-- Remaining Track 1 checklist entries are team coordination, final-demo evidence, and visual assets that have not yet been supplied. They do not block the current engineering scope and remain deferred with submission preparation.
+- Remaining work is submission preparation and any user-requested manual review of the recent UI/packaging changes; the supplied app logo, favicon, team cover, and portrait are present in the project.
 
 ## Phase 0 — Lock the product contract
 
@@ -67,7 +67,7 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 
 - [x] Create a Streamlit app with sample-data and CSV-upload paths.
 - [x] Add an in-app sample CSV download and identify uploaded dataset changes by file content.
-- [x] Allow the user to switch between the two synthetic scenarios and download the selected one.
+- [x] Default to the bundled factory-derived synthetic LINE-04 fixture; allow switching to and downloading either reproducible synthetic scenario.
 - [x] Add explicit dataset-ready, insufficient-evidence, invalid-data, analysis-progress, and AMD-configuration states.
 - [x] Distinguish a CSV parsing failure from the no-file-selected state and explain that it is an input issue.
 - [x] Show reading count, production line, batch count, and time window before the user runs analysis.
@@ -78,11 +78,11 @@ This checklist tracks implementation against the phases in [LotLens — Project 
 - [x] Add a selectable sensor-context trend for temperature, vibration, and pressure with a descriptive baseline; keep it distinct from alert logic.
 - [x] Show supporting readings, procedure excerpts, synthetic-data labels, and human-review language.
 - [x] Add an investigation-brief action and downloadable handoff with detector evidence, procedure excerpts, data provenance, and clearly separated AI interpretation when available.
-- [x] Keep the logo as a plain-text `LotLens` placeholder.
+- [x] Use the supplied horizontal LotLens lockup in the navbar and aperture symbol as the favicon.
 - [x] Implement separate normal-result and drift-result states, including the selected scenario in the provenance label.
 - [x] Map timeout, authorization, rate-limit, provider, and malformed-response failures to safe messages while preserving the deterministic result.
 - [x] Show distinct AMD-ready and credentials-pending states, explain that local analysis remains available, and show the exact missing settings with the reload action.
-- [ ] Integrate user-approved visual assets when supplied; replace the placeholder only when the finished logo is supplied.
+- [x] Integrate the supplied LotLens navbar lockup, aperture favicon, and team cover/portrait assets.
 - [x] User manually reviewed the local visual interactions and reported the listed UI and CSV checks passed; see the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md).
 
 ## Phase 4 — Integrate and record local manual review
@@ -136,12 +136,12 @@ The Commerce extension is now implemented locally in the same LotLens product. C
 
 **Current status:** Implemented and reviewed locally. The user-reviewed seeded/stable scenarios and mapped/unmapped/invalid-upload Commerce cases passed. A separate missing-file screenshot was not provided; the app displays a prompt asking for both Commerce files. The built-in sample uses an alerted lot with 180 units on hand (65 reserved), 230 available units in an unaffected lot, and 120 unallocated open-order units. The documented rule compares 185 units of reallocation need with 230 clean units. This example is synthetic and is not a demand forecast or proof of commercial savings.
 
+**Factory-data limit:** `LINE-04_Production_Quality_Log.csv` is included in the repository as the default fixture. It is byte-identical to a synthetic copy that the user confirms was derived from real factory data. Treat it as a factory-derived synthetic fixture, not raw or independent factory evidence. An approved pilot on factory records with known reference outcomes remains open; see the [Real-Data Pilot and Verification Guide](Real-Data%20Pilot%20and%20Verification%20Guide.md).
+
 ## Remaining team inputs and actions
 
 No additional local credentials or pre-build decisions are currently needed. The user completed local and hosted manual reviews. Remaining actions are:
 
-- Finished logo file, when ready. Until then, the app uses text only.
-- Any approved cover or other visual assets after you finalize them. Codex will implement and integrate them.
 - Team workstream owners and an integration checkpoint, if PARALLAX wants the checklist to track named responsibilities.
 - Finish the cover, demo video, slides, and any remaining evidence for the event submission.
 - Confirm current submission requirements and deadline in the event dashboard, then submit.

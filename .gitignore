@@ -8,7 +8,8 @@ venv/
 .ruff_cache/
 dist/
 build/
-lotlens-shift-handoff.txt
+lotlens-shift-handoff*.txt
 lotlens-synthetic-*.csv
+/lotlens_synthetic_manufacturing_data.csv
 AMD ACT III -- Overview.md
 

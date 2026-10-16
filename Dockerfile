@@ -12,9 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && useradd --system --gid lotlens --home-dir /home/lotlens --create-home lotlens
 
 COPY app.py ./app.py
+COPY LINE-04_Production_Quality_Log.csv ./LINE-04_Production_Quality_Log.csv
 COPY lotlens ./lotlens
 COPY data ./data
 COPY assets ./assets
+COPY logos ./logos
 COPY .streamlit ./.streamlit
 
 RUN chown -R lotlens:lotlens /app

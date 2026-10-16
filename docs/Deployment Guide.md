@@ -6,6 +6,7 @@ This guide documents the Streamlit app deployment. Streamlit Community Cloud is 
 
 - Build context: project root.
 - Build command: `docker build -t lotlens .`
+- The image copies the bundled `LINE-04_Production_Quality_Log.csv`, LotLens code, styles, logo/favicon, team assets, and procedure data needed by the default app view.
 - Start command: the `Dockerfile` starts Streamlit on `0.0.0.0` and reads the port from `PORT`, defaulting to `8501`.
 - Required runtime: Python 3.11 container support and outbound HTTPS access to the configured AMD chat-completions endpoint.
 - Persistent storage: none. Uploaded CSVs and analysis state are held for the active Streamlit session; they are not saved as a durable dataset.

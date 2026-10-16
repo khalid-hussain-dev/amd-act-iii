@@ -1,6 +1,6 @@
 # LotLens — Quality Drift Investigator
 
-LotLens is a prototype for detecting sustained quality drift in manufacturing inspection data. It compares a defect-rate series with a stable baseline, identifies an affected batch when the change persists, and supports a human-led investigation with evidence and synthetic operating-procedure excerpts.
+LotLens is a prototype for detecting sustained quality drift in manufacturing inspection data and reviewing the resulting stock exposure. It compares a defect-rate series with a stable baseline, identifies an affected batch, connects that lot to inventory and open orders, and supports a human-led investigation with evidence and synthetic operating-procedure excerpts.
 
 ## Run locally
 
@@ -32,7 +32,7 @@ The selected hosting target is Streamlit Community Cloud. Its deployment uses th
 
 **Live demo:** [lotlens.streamlit.app](https://lotlens.streamlit.app/). The user reports that the deployed project was manually reviewed and worked as expected; details are recorded in the [Manual Verification Guide](docs/LotLens%20--%20Manual%20Verification%20Guide.md).
 
-The app opens with a clearly labeled synthetic sample scenario. Choose either **Seeded drift** or **Stable process** to view both alert and no-alert cases, or select **Upload CSV** to use another dataset; the required schema is described below.
+The app opens with the included **Production quality log** scenario, a factory-derived synthetic fixture confirmed by the project owner. It is not a raw or independent factory export. Choose **Seeded drift** or **Stable process** to compare the reproducible demo cases, or select **Upload CSV** to use another dataset; the required schema is described below.
 
 The sample fields, units, generation pattern, and limits of interpretation are documented in [the synthetic data dictionary](data/DATA_DICTIONARY.md).
 
@@ -58,6 +58,8 @@ Optional context columns are `temperature_c` (°C), `vibration_mm_s` (mm/s), `pr
 
 Timestamps must parse, numeric values must be finite when provided, `units_inspected` must be a positive whole-number count, and `defect_count` must be a whole number between zero and `units_inspected`. Each uploaded analysis must contain one `line_id` and at least 12 rows so the app can form a baseline and monitored period. LotLens expects the column names and units above; different source names or units must be mapped or converted before upload. Use synthetic or non-sensitive data in the hackathon demo.
 
+`LINE-04_Production_Quality_Log.csv` is included in the repository because it backs the default scenario. The project owner confirms it is byte-identical to a synthetic copy derived from factory data. Treat it as a factory-derived synthetic fixture, not as raw, independently verified, or production-validating evidence. The duplicate `lotlens_synthetic_manufacturing_data.csv` remains local and Git-ignored. See the [real-data pilot guide](docs/Real-Data%20Pilot%20and%20Verification%20Guide.md) before making claims about factory-data validation.
+
 ## Detection rule
 
 The first 60% of timestamp-sorted readings form the baseline. LotLens computes the mean defect rate and population standard deviation for that interval. The threshold is:
@@ -78,6 +80,7 @@ For uploaded production readings, upload both additional CSVs from the sidebar t
 
 - [Commerce data dictionary](data/COMMERCE_DATA_DICTIONARY.md)
 - [Project brief and phased build plan](docs/LotLens%20--%20Project%20Brief%20and%20Build%20Plan.md)
+- [Integrated UI redesign blueprint](docs/LotLens%20--%20Integrated%20UI%20Redesign%20Blueprint.md)
 - [Phase completion checklist and required user inputs](docs/LotLens%20--%20Completion%20Checklist.md)
 - [Manual verification steps and results log](docs/LotLens%20--%20Manual%20Verification%20Guide.md)
 - [Real-data pilot and verification guide](docs/Real-Data%20Pilot%20and%20Verification%20Guide.md)

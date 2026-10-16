@@ -5,15 +5,15 @@ This guide explains how a data owner and quality lead can prepare an approved, s
 ## Current verification status (15 October 2026)
 
 - **Synthetic workflow checks: passed.** The uploaded-reading validator and drift detector, stable/no-alert behavior, mapped and unmapped Commerce cases, malformed inventory handling, Streamlit startup, CSV template, and sensor-free uploads were checked locally against synthetic scenarios and fixtures.
-- **`LINE-04_Production_Quality_Log.csv`:** Accepted by LotLens and produced a sustained-drift alert. It is byte-for-byte identical to `lotlens_synthetic_manufacturing_data.csv`, so it is the same synthetic dataset under a new name, not independent factory evidence.
-- **Real-data pilot: not performed.** No distinct approved factory dataset was available for this review. Synthetic checks confirm implemented calculation paths, but do not validate the alert rule against a real production process.
-- **Next concrete input for a real-data pilot:** an approved, sanitized production-readings CSV that follows the schema below. Matching inventory and open-orders CSVs are only needed if Commerce impact is also being reviewed.
+- **`LINE-04_Production_Quality_Log.csv`:** The user confirms that the byte-identical `lotlens_synthetic_manufacturing_data.csv` copy was derived from real factory data. The canonical LINE-04 file is bundled in the public repository because it backs the default scenario; the duplicate source-named copy remains local and Git-ignored. Treat the bundled file as a **factory-derived synthetic fixture**, not a raw factory export or independent factory dataset. Its transformation and relationship to actual operating conditions are not documented here.
+- **Real-data pilot: limited and not production-validating.** The upload path and detector have been exercised on the factory-derived synthetic fixture, but its transformation, data-owner approval, and relationship to actual operating conditions are not documented here. This does not establish detector accuracy on independent factory history or validate the alert rule for production use.
+- **Next concrete step:** Document the data owner's approval, transformation/sanitization method, and intended permitted uses. For an independent pilot, use an approved representative export with known normal/incident periods and record the human reference assessment. Matching inventory and open-orders CSVs are only needed if Commerce impact is also being reviewed.
 
 The exact local verification outcomes are recorded in the [manual verification guide](LotLens%20--%20Manual%20Verification%20Guide.md). No production or operational conclusion should be inferred from the synthetic checks.
 
 ## What the current build supports
 
-- LotLens accepts a production-readings CSV through **Upload CSV**. The current interface analyzes one production line per file.
+- LotLens opens with the bundled factory-derived synthetic LINE-04 fixture. Users can select the reproducible seeded-drift or stable synthetic scenario, or upload a production-readings CSV through **Upload CSV**. The current interface analyzes one production line per file.
 - Optional Commerce context is supplied as two more CSVs: an inventory snapshot and aggregated unallocated open orders.
 - The uploads and analysis state are held in the active Streamlit session. The app has no durable dataset store or live connection to MES, SCADA, QMS, ERP, or order systems.
 - The detector is deterministic. It sorts readings by timestamp, uses the first 60% as the baseline, sets the alert threshold to `baseline mean + max(3 × population standard deviation, 2 percentage points)`, and alerts after three consecutive monitored readings above that threshold. This is the current demo rule, not a validated plant control limit.

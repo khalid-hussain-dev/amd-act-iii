@@ -1,14 +1,19 @@
-"""Repeatable synthetic manufacturing data for the LotLens demo."""
+"""Repeatable demo data and the factory-derived synthetic LotLens fixture."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pandas as pd
 
 
 def build_sample_dataset(*, scenario: str = "drift") -> pd.DataFrame:
-    """Return repeatable synthetic readings for the drift or stable scenario."""
+    """Return repeatable demo readings or the included production-quality log."""
+    if scenario == "production":
+        path = Path(__file__).resolve().parent.parent / "LINE-04_Production_Quality_Log.csv"
+        return pd.read_csv(path, parse_dates=["timestamp"])
     if scenario not in {"drift", "stable"}:
-        raise ValueError("scenario must be 'drift' or 'stable'")
+        raise ValueError("scenario must be 'drift', 'stable', or 'production'")
 
     timestamps = pd.date_range("2026-10-14 06:00", periods=48, freq="10min")
     records: list[dict[str, object]] = []

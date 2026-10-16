@@ -12,13 +12,14 @@ LotLens remains one product and one submission. Its core Intelligent Industry wo
 ### Current implementation status
 
 - **Product contract:** One product with an Intelligent Industry quality-drift workflow and an integrated Reinvent Commerce stock-impact workflow; both retain deterministic calculations and human-approved actions.
-- **Phase 1:** Initial data validation, two synthetic scenarios (stable and seeded drift), the single-line drift detector, and procedure retrieval are implemented. User-reported manual results confirmed no stable-scenario alert and a seeded alert at 11:20, confirmed at 11:40 on 14 October 2026.
+- **Phase 1:** Initial data validation, two reproducible synthetic scenarios (stable and seeded drift), the bundled factory-derived synthetic LINE-04 fixture (selected by default), the single-line drift detector, and procedure retrieval are implemented. User-reported manual results confirmed no stable-scenario alert and a seeded alert at 11:20, confirmed at 11:40 on 14 October 2026.
 - **Phase 2:** The AMD Token Factory chat call, response validation, citation filtering, and UI fallback are implemented. The user configured the API key and completed a live brief call. The first response made an unsupported typical-range claim; after narrowing the request context and prompt, the user re-ran MV-06 successfully (892 tokens; endpoint-reported model `self-dploy/DeepSeek-V4-Flash`) with source-linked checks and no unsupported range claim.
-- **Phase 3:** The Streamlit prototype, Mineral Precision theme, explicit analysis action, scenario selector, CSV upload, evidence, handoff, and input states are implemented. The user reported that visual interactions and CSV cases ran as expected. The logo remains a plain-text placeholder.
+- **Phase 3:** The Streamlit prototype, Mineral Precision theme, explicit analysis action, scenario selector, CSV upload, evidence, handoff, and input states are implemented. The user reported that visual interactions and CSV cases ran as expected. The navbar uses the supplied LotLens horizontal lockup and the supplied aperture symbol is the favicon.
 - **Manual review:** The user completed the listed local manual checks on 14 October 2026; outcomes are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). This is a user-reported review, not a Codex rerun.
 - **Deployment:** Public repository published and Streamlit Community Cloud demo live at https://lotlens.streamlit.app/. The user reports a successful hosted review, including an AMD-generated investigation brief; see the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md).
-- **Track 1 engineering:** Complete. The user-reported local and hosted manual reviews are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). Remaining Track 1 items are final-demo evidence, team assignment, and user-supplied visual assets; those are deferred with submission preparation.
+- **Track 1 engineering:** Implemented. Earlier user-reported local and hosted manual reviews are recorded in the [Manual Verification Guide](LotLens%20--%20Manual%20Verification%20Guide.md). The recent UI and packaging changes have not yet been manually reviewed.
 - **Track 2 implementation:** Inventory-to-SKU mapping, inventory/order CSV validation, unaffected-stock calculation, and a human-reviewed allocation recommendation are implemented and user-reviewed locally, including mapped, unmapped, and invalid-snapshot uploads.
+- **Factory-derived fixture:** `LINE-04_Production_Quality_Log.csv` is bundled in the repository and container because it backs the default scenario. The user confirms it is byte-identical to a synthetic copy derived from real factory data. It is not a raw or independent factory export; see the [Real-Data Pilot and Verification Guide](Real-Data%20Pilot%20and%20Verification%20Guide.md) for limitations.
 - **Next project gate:** Decide which demonstrated tracks to select in the submission, then finish the presentation materials and submit.
 
 ## Vision
@@ -129,7 +130,7 @@ The hackathon asks for a working prototype and demo application, so a deck or st
 
 ### UI design ownership and handoff
 
-The user will discuss and finalize palette and visual assets in web ChatGPT. Codex owns the product's visual and technical implementation, following the finalized color system and the approved assets the user supplies. The interface layout should serve the LotLens investigation workflow rather than copy a generic dashboard template.
+The Mineral Precision palette and the Calibrated Lens logo direction are finalized in their respective design documents. The supplied horizontal lockup and aperture favicon are integrated into the app; final submission visuals remain separate. Codex owns the product's visual and technical implementation, following those references and integrating approved assets when provided. The interface layout should serve the LotLens investigation workflow rather than copy a generic dashboard template.
 
 The designed UI should communicate these capabilities in a way that suits the chosen workflow:
 
@@ -141,7 +142,7 @@ The designed UI should communicate these capabilities in a way that suits the ch
 - See clear normal, drift, invalid-input, insufficient-evidence, and unavailable-model states.
 - Copy or download a shift-handoff summary without implying it was automatically sent or acted on.
 
-Use plain text `LotLens` as the temporary header placeholder. Do not create or approximate logo artwork. Replace the placeholder only when the user supplies the finished logo.
+The app header uses the supplied horizontal LotLens lockup, with the supplied aperture symbol as its favicon. Do not redraw or approximate the logo artwork.
 
 ## Project phases and completion steps
 
@@ -292,7 +293,7 @@ Use this description as product context when exploring the UI in a separate desi
 
 > **Project:** LotLens — Quality Drift Investigator
 >
-> LotLens is a web application for factory quality leads and process engineers. It helps them catch when a production process starts drifting out of specification and investigate the affected batch before the issue spreads. The MVP uses clearly labeled synthetic factory data: timestamped machine readings, inspection counts, batch and shift identifiers, operator notes, and a small set of sample operating procedures.
+> LotLens is a web application for factory quality leads and process engineers. Its core Intelligent Industry workflow helps them catch when a production process starts drifting out of specification and investigate the affected batch. The product also includes a Reinvent Commerce inventory-impact workflow that maps an alerted lot to inventory and open orders for a human-reviewed allocation decision. The built-in scenarios and sample procedures use clearly labeled synthetic data; uploaded CSVs are labeled with unverified origin.
 >
 > A user can choose a sample dataset or upload a CSV, then run an analysis. LotLens uses transparent statistical rules—not a language model—to compare the monitored readings with a stable baseline and detect sustained changes in quality. When it finds a drift, it identifies the affected production line and batch, when the change began, which measurements contributed to the alert, and how those values compare with the baseline or alert threshold. The user should be able to inspect the trend over time and understand why LotLens raised the alert.
 >
@@ -302,9 +303,9 @@ Use this description as product context when exploring the UI in a separate desi
 >
 > Design for a busy quality lead who needs to understand the alert quickly, then examine the evidence in more detail. Make the distinction between calculated facts, AI-written interpretation, and human decisions visible. Include UI states for: no dataset selected, sample data ready, analysis in progress, normal results, drift detected, invalid CSV, insufficient evidence, and AMD/model service unavailable. Label sample records as synthetic. The visual tone should be precise, calm, and trustworthy for an industrial setting; alerts should be noticeable without making the whole interface feel alarmed.
 >
-> Follow **Mineral Precision** from `LotLens -- Visual Identity & Color System.md` as the authoritative visual theme. It defines the exact palette and semantic roles, Manrope/Inter/IBM Plex Mono typography, selective glassmorphism and lighting, readable evidence surfaces, chart treatment, interaction, and accessibility rules. Keep the product name as plain text in a logo placeholder until the user supplies finished artwork; do not create or approximate a logo.
+> Follow **Mineral Precision** from `LotLens -- Visual Identity & Color System.md` as the authoritative visual theme. It defines the exact palette and semantic roles, Manrope/Inter/IBM Plex Mono typography, selective glassmorphism and lighting, readable evidence surfaces, chart treatment, interaction, and accessibility rules. Use the user-supplied horizontal lockup in the navbar and the aperture symbol as the favicon; do not redraw or approximate the supplied artwork.
 >
-> The primary hackathon category is **Intelligent Industry**. The current MVP does not need a commerce workflow, customer-facing features, inventory decisions, authentication, live factory connections, or automated equipment control. Those are outside the first version.
+> **Intelligent Industry** is the completed core workflow. **Reinvent Commerce** is implemented as an integrated inventory-impact extension: with valid inventory and open-orders snapshots, the app calculates affected reservations, unaffected stock, and any uncovered-unit gap. Both workflows use deterministic calculations and leave decisions to a person. LotLens has no customer-facing commerce flow, authentication, live factory or inventory-system connections, automated holds, or equipment control.
 
 ### Visual direction
 
@@ -312,12 +313,12 @@ Use this description as product context when exploring the UI in a separate desi
 - **Personality:** Premium, investigative, dependable, technically sophisticated, and distinctive. Expressiveness and glassmorphism are welcome when they reinforce investigative clarity; evidence-heavy panels must remain readable.
 - **Color roles:** Mineral Sage (`#B8CBA8`) is the primary brand accent, not a normal-status color. Brushed Brass (`#D0B17A`) is a secondary accent, not a warning color. Use the semantic status colors and chart roles defined in the color-system document.
 - **Typography:** Manrope for display and headings, Inter for interface text, and IBM Plex Mono for measurements, timestamps, thresholds, and identifiers, with appropriate fallbacks.
-- **Logo:** Keep a plain-text `LotLens` placeholder for now. The supplied logo direction is reference only; do not create, redraw, or approximate a logo. Replace the placeholder when the user provides finished artwork.
+- **Logo:** Use the supplied horizontal LotLens lockup in the navbar and the aperture symbol as the favicon. Do not redraw or approximate the supplied artwork.
 - **Avoid:** Dominant electric blue/cyan, generic sci-fi control-room styling, excessive neon or glow, illegible tiny labels, ungrounded chart marks, and imagery implying autonomous equipment control.
 
 ### Useful assets to prepare
 
-1. Keep the app-header brand area as a plain-text `LotLens` placeholder until the user supplies the finished logo; do not create logo artwork.
+1. Use the supplied horizontal LotLens lockup in the app navbar and the supplied aperture symbol as the favicon.
 2. A submission cover illustration showing a production line, a highlighted batch path, and a clear quality-trend inflection, styled with the Mineral Precision color system.
 3. A small diagram showing the product flow: readings + inspections + SOP → drift detection → evidence brief → human review.
 4. Optional UI state icons for normal, drift, AI-generated, and informational states, using the semantic palette and labels specified by the color system.
@@ -328,7 +329,7 @@ Use this description as product context when exploring the UI in a separate desi
 
 ## Visual asset handoff
 
-The user will use web ChatGPT to discuss and finalize the palette and visual assets. Codex implements the application's visual layout and interactions from the LotLens workflow, following the finalized color system. Integrate supplied approved visuals as they become available. Keep the app header as plain-text `LotLens` until the user supplies the finished logo; do not generate or approximate logo artwork.
+The Mineral Precision palette and Calibrated Lens logo direction are finalized in their respective documents. Codex implements the application's visual layout and interactions from the LotLens workflow, following the finalized color system. The supplied horizontal lockup and aperture favicon are integrated; submission-cover and pitch visuals remain separate. Do not generate or approximate the supplied logo artwork.
 
 ## Risks and decisions to verify
 
@@ -336,7 +337,7 @@ The user will use web ChatGPT to discuss and finalize the palette and visual ass
 - **Deadline discrepancy:** The live schedule showed 18 October at 3:00 PM Pakistan time while the event header showed 8:00 PM PST. Use the earlier time as the internal deadline until the organizers clarify.
 - **Synthetic data:** Clearly label it and avoid real-world performance claims based only on generated data.
 - **Model reliability:** Keep calculated values deterministic, show source excerpts, and make uncertainty visible.
-- **Scope:** Build the Intelligent Industry workflow before considering commerce inventory functionality.
+- **Scope:** Intelligent Industry is the core workflow; the Reinvent Commerce inventory-impact extension is already implemented and manually reviewed locally. Keep both descriptions aligned with the capabilities actually shown in the app and select tracks deliberately for the submission.
 - **Manual verification:** The user completed the listed local-build checks. Keep those results distinct from any future review of the deployed build.
 
 ## Event reference

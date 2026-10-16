@@ -8,6 +8,8 @@ This document records the user's completed manual reviews of the local and deplo
 **Local review status:** Passed — all listed local manual checks completed; the AMD brief passed its focused content review.
 **Hosted review status:** Passed — the user reports that the deployed project worked as expected, including AMD-generated brief output. This is a user-reported result; Codex did not independently access or rerun the hosted app.
 
+**Implementation update (17 October 2026):** The app now defaults to the bundled factory-derived synthetic LINE-04 fixture, uses the supplied LotLens lockup and favicon, and packages its runtime assets and fixture for GitHub and Docker checkouts. These latest UI and packaging changes have not been manually reviewed yet.
+
 ## 1. Run LotLens locally
 
 Open PowerShell and run:
@@ -184,7 +186,7 @@ The Commerce panel was added after the Track 1 review recorded above. The user r
 
 **Result:** Pass — 20 focused assertions passed locally. The checks accepted the synthetic production CSV, detected the sustained drift on `LOT-8042-B` with three evidence readings, produced no alert for the stable sample, accepted mapped Commerce inputs, confirmed the expected allocation figures (180 affected, 65 reserved, 230 clean available, 120 unallocated orders, 185 need, 0 uncovered, 45 remaining), returned `unmapped` for a valid inventory snapshot without the alerted batch, and rejected an inventory CSV with missing required fields. A Streamlit `AppTest` startup smoke run also completed without uncaught exceptions (8 main-area and 14 sidebar elements rendered).
 
-**Limit:** These checks used synthetic sample data and synthetic fixtures only. They do not validate the detector against factory history, establish statistical suitability for a production line, or verify AMD endpoint behavior. The real-data pilot remains unperformed because no approved, sanitized factory dataset was available in the workspace.
+**Limit:** These checks used synthetic sample data and synthetic fixtures, including a factory-derived synthetic copy. They do not validate the detector against independent factory history, establish statistical suitability for a production line, or verify AMD endpoint behavior. A pilot on an approved, sanitized factory export with known reference outcomes remains unperformed.
 
 ## 4. Repeat the local review after a material change
 
@@ -230,6 +232,6 @@ The user reported that the deployed project worked as expected. No hosted failur
 
 **Build/revision:** local working tree after `aeeb6bb`; upload-guidance changes were not yet committed during this check.
 
-**Result:** Pass — 18 focused checks passed. The new `LINE-04_Production_Quality_Log.csv` was accepted and analyzed as a synthetic Industry input. The upload screen rendered the CSV template download and field guide. A copy with all optional sensor and note columns removed also uploaded and analyzed successfully; the app explicitly showed that no machine sensor readings were supplied while retaining the defect-rate analysis. Partial/blank sensor context was accepted, while a non-numeric supplied sensor value was rejected as an input issue. Streamlit app startup, upload-mode rendering, and analysis completed without uncaught exceptions.
+**Result:** Pass — 18 focused checks passed. `LINE-04_Production_Quality_Log.csv` was accepted by the uploader and analyzed. The upload screen rendered the CSV template download and field guide. A copy with all optional sensor and note columns removed also uploaded and analyzed successfully; the app explicitly showed that no machine sensor readings were supplied while retaining the defect-rate analysis. Partial/blank sensor context was accepted, while a non-numeric supplied sensor value was rejected as an input issue. Streamlit app startup, upload-mode rendering, and analysis completed without uncaught exceptions.
 
-**Interpretation limit:** `LINE-04_Production_Quality_Log.csv` is byte-for-byte identical to `lotlens_synthetic_manufacturing_data.csv`. These checks verify the uploader and analysis behavior with synthetic data, not performance on independent factory records.
+**Provenance clarification (15 October 2026):** The user confirms that `lotlens_synthetic_manufacturing_data.csv` was derived from real factory data. A byte comparison found `LINE-04_Production_Quality_Log.csv` identical to that synthetic copy. These checks therefore used a factory-derived synthetic fixture, not raw factory records or an independent holdout. They verify CSV upload and analysis behavior on that fixture only; they do not validate detector accuracy against factory history or establish suitability for production use. The canonical LINE-04 fixture is now included in Git as the default app dataset; its byte-identical duplicate remains local and Git-ignored.
