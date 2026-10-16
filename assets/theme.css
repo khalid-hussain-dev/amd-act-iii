@@ -324,11 +324,11 @@ div[data-testid="stButton"] > button:hover::after { opacity:1; transform:transla
 }
 [data-testid="stSpinner"] > div { display:none !important; }
 [data-testid="stSpinner"]::before {
-  display:grid; place-items:center; width:5.8rem; height:5.8rem; content:"LotLens";
-  border:1px solid rgba(184,203,168,.48); border-radius:50%;
-  color:var(--ll-text-primary); background:radial-gradient(circle,rgba(32,39,34,.98),rgba(16,19,17,.94));
+  display:grid; place-items:center; width:5.8rem; height:5.8rem; content:"";
+  border:1px solid rgba(184,203,168,.24); border-radius:50%;
+  background-color:rgba(16,19,17,.94); background-image:url("__LL_APERTURE_ICON__");
+  background-position:center; background-repeat:no-repeat; background-size:3.45rem 3.45rem;
   box-shadow:0 0 0 13px rgba(184,203,168,.04), 0 0 52px rgba(184,203,168,.2), inset 0 1px rgba(255,255,255,.1);
-  font:800 .88rem/1 "Manrope",sans-serif; letter-spacing:-.075em;
 }
 [data-testid="stSpinner"]::after {
   position:absolute; inset:0; width:7.4rem; height:7.4rem; margin:auto; content:"";

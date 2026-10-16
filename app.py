@@ -58,6 +58,8 @@ st.set_page_config(
 
 def _inject_theme() -> None:
     css = (ROOT / "assets" / "theme.css").read_text(encoding="utf-8")
+    aperture_icon = base64.b64encode((ROOT / "logos" / "LotLens Aperture Favicon.png").read_bytes()).decode("ascii")
+    css = css.replace("__LL_APERTURE_ICON__", f"data:image/png;base64,{aperture_icon}")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
